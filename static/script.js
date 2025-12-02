@@ -5,7 +5,7 @@
  * Descripción:
  * Maneja toda la interactividad del navegador: tabla Tabulator, modales,
  * conexión con API (fetch), y lógica del Agente de IA.
- * * Estructura:
+ * Estructura:
  * 1. Variables Globales & Configuración
  * 2. Servicios UI & Utilidades (Toasts, Traducciones)
  * 3. Gestión de Archivos (Upload/Download)
@@ -16,7 +16,8 @@
  * 8. Gestión de Duplicados
  * 9. Reglas de Negocio & Autocompletado
  * 10. Lógica del Chatbot IA
- * 11. Inicialización y Eventos
+ * 11. Gestor de Eventos (SetupEventListeners)
+ * 12. Inicialización (DOM Ready)
  * ============================================================================
  */
 
@@ -202,7 +203,7 @@ async function handleFileUpload(event) {
         populateColumnDropdowns(); 
         renderColumnSelector(); 
         updateVisibleColumnsFromCheckboxes();
-        updateFilterInputAutocomplete();
+        // updateFilterInputAutocomplete(); // (Nota: Esta función no estaba definida en el script original subido, se comenta para evitar error si no existe en tu lógica personalizada, o asegúrate de tenerla)
         resetResumenCard(); 
         
         activeFilters = []; 
@@ -554,6 +555,7 @@ async function refreshActiveView() {
     updateActionButtonsVisibility();
 }
 
+// --- FUNCIONES DE POBLADO DE DROPDOWNS ---
 function populateGroupDropdown() {
     const select = document.getElementById('select-columna-agrupar');
     if (!select) return; 
@@ -565,6 +567,20 @@ function populateGroupDropdown() {
         select.appendChild(option);
     });
     if (val) select.value = val;
+}
+
+function populateColumnDropdowns() {
+    // 1. Selector de Filtro
+    const filterSelect = document.getElementById('select-columna');
+    if (filterSelect) {
+        filterSelect.innerHTML = `<option value="">${i18n['column_select'] || 'Select column:'}</option>`;
+        todasLasColumnas.forEach(col => {
+            const opt = document.createElement('option');
+            opt.value = col;
+            opt.textContent = col === '_row_id' ? "N° Fila" : (col === '_row_status' ? "Row Status" : (col === '_priority' ? "Prioridad" : col));
+            filterSelect.appendChild(opt);
+        });
+    }
 }
 
 async function handleGroupColumnChange() { await getGroupedData(); }
@@ -1531,7 +1547,184 @@ function handleChatKey(e) { if(e.key === 'Enter') sendMessage(); }
 
 
 // ============================================================================
-// 11. INICIALIZACIÓN (DOM READY)
+// 11. GESTOR DE EVENTOS (MISSING FUNCTION)
+// ============================================================================
+
+function setupEventListeners() {
+    // 1. Carga de Archivos
+    const uploader = document.getElementById('file-uploader');
+    if (uploader) uploader.addEventListener('change', handleFileUpload);
+
+    // 2. Idioma
+    const btnEs = document.getElementById('btn-lang-es');
+    if (btnEs) btnEs.addEventListener('click', () => setLanguage('es'));
+    const btnEn = document.getElementById('btn-lang-en');
+    if (btnEn) btnEn.addEventListener('click', () => setLanguage('en'));
+
+    // 3. Filtros
+    const btnAddFilter = document.getElementById('btn-add-filter');
+    if (btnAddFilter) btnAddFilter.addEventListener('click', handleAddFilter);
+    
+    // Selectores de Columna (Marcar/Desmarcar todas)
+    const btnCheckAll = document.getElementById('btn-check-all-cols');
+    if (btnCheckAll) btnCheckAll.addEventListener('click', () => {
+        document.querySelectorAll('#column-selector-wrapper input[type="checkbox"]').forEach(cb => cb.checked = true);
+        updateVisibleColumnsFromCheckboxes();
+    });
+
+    const btnUncheckAll = document.getElementById('btn-uncheck-all-cols');
+    if (btnUncheckAll) btnUncheckAll.addEventListener('click', () => {
+        document.querySelectorAll('#column-selector-wrapper input[type="checkbox"]').forEach(cb => cb.checked = false);
+        updateVisibleColumnsFromCheckboxes();
+    });
+
+    // Delegación de eventos para los checkboxes de columnas (por si se generan dinámicamente)
+    const colWrapper = document.getElementById('column-selector-wrapper');
+    if (colWrapper) colWrapper.addEventListener('change', (e) => {
+        if (e.target.matches('input[type="checkbox"]')) updateVisibleColumnsFromCheckboxes();
+    });
+
+    // 4. Botones Principales (Sidebar)
+    const btnManage = document.getElementById('btn-manage-lists');
+    if (btnManage) btnManage.addEventListener('click', openManageListsModal);
+
+    const btnRules = document.getElementById('btn-priority-rules');
+    if (btnRules) btnRules.addEventListener('click', openPriorityRulesModal);
+
+    const btnAnomalies = document.getElementById('btn-analyze-anomalies');
+    if (btnAnomalies) btnAnomalies.addEventListener('click', handleAnalyzeAnomalies);
+
+    const btnShowDupes = document.getElementById('btn-show-duplicates');
+    if (btnShowDupes) btnShowDupes.addEventListener('click', handleShowDuplicates);
+
+    const btnCleanDupes = document.getElementById('btn-cleanup-duplicates');
+    if (btnCleanDupes) btnCleanDupes.addEventListener('click', handleCleanupDuplicates);
+
+    // 5. Vistas y Agrupación
+    const btnViewDetailed = document.getElementById('btn-view-detailed');
+    if (btnViewDetailed) btnViewDetailed.addEventListener('click', () => toggleView('detailed'));
+
+    const btnViewGrouped = document.getElementById('btn-view-grouped');
+    if (btnViewGrouped) btnViewGrouped.addEventListener('click', () => toggleView('grouped'));
+
+    const selectGroup = document.getElementById('select-columna-agrupar');
+    if (selectGroup) selectGroup.addEventListener('change', handleGroupColumnChange);
+
+    // 6. Controles de Tabla (Búsqueda y Botones de Acción)
+    const inputSearch = document.getElementById('input-search-table');
+    if (inputSearch) inputSearch.addEventListener('keyup', handleSearchTable);
+
+    const btnBulkEdit = document.getElementById('btn-bulk-edit');
+    if (btnBulkEdit) btnBulkEdit.addEventListener('click', openBulkEditModal);
+
+    const btnFindReplace = document.getElementById('btn-find-replace');
+    if (btnFindReplace) btnFindReplace.addEventListener('click', openFindReplaceModal);
+
+    const btnBulkDelete = document.getElementById('btn-bulk-delete');
+    if (btnBulkDelete) btnBulkDelete.addEventListener('click', handleBulkDelete);
+
+    const btnAddRow = document.getElementById('btn-add-row');
+    if (btnAddRow) btnAddRow.addEventListener('click', handleAddRow);
+
+    const btnUndo = document.getElementById('btn-undo-change');
+    if (btnUndo) btnUndo.addEventListener('click', handleUndoChange);
+
+    const btnCommit = document.getElementById('btn-commit-changes');
+    if (btnCommit) btnCommit.addEventListener('click', handleCommitChanges);
+    
+    const btnAudit = document.getElementById('btn-download-audit-log');
+    if (btnAudit) btnAudit.addEventListener('click', handleDownloadAuditLog);
+
+    const btnClearFilters = document.getElementById('btn-clear-filters');
+    if (btnClearFilters) btnClearFilters.addEventListener('click', handleClearFilters);
+    
+    const btnClearFiltersG = document.getElementById('btn-clear-filters-grouped');
+    if (btnClearFiltersG) btnClearFiltersG.addEventListener('click', handleClearFilters);
+
+    // 7. Descargas y Pantalla Completa
+    const btnDownExcel = document.getElementById('btn-download-excel');
+    if (btnDownExcel) btnDownExcel.addEventListener('click', handleDownloadExcel);
+
+    const btnDownExcelG = document.getElementById('btn-download-excel-grouped');
+    if (btnDownExcelG) btnDownExcelG.addEventListener('click', handleDownloadExcelGrouped);
+
+    const btnFull = document.getElementById('btn-fullscreen');
+    if (btnFull) btnFull.addEventListener('click', handleFullscreen);
+    
+    const btnFullG = document.getElementById('btn-fullscreen-grouped');
+    if (btnFullG) btnFullG.addEventListener('click', handleFullscreen);
+
+    // 8. Modales (Botones internos)
+    // Bulk Edit
+    const btnBulkApply = document.getElementById('btn-bulk-apply');
+    if (btnBulkApply) btnBulkApply.addEventListener('click', handleBulkEditApply);
+    const btnBulkCancel = document.getElementById('btn-bulk-cancel');
+    if (btnBulkCancel) btnBulkCancel.addEventListener('click', () => closeModal('bulk-edit-modal'));
+
+    // Find & Replace
+    const btnFindApply = document.getElementById('btn-find-replace-apply');
+    if (btnFindApply) btnFindApply.addEventListener('click', handleFindReplaceApply);
+    const btnFindCancel = document.getElementById('btn-find-replace-cancel');
+    if (btnFindCancel) btnFindCancel.addEventListener('click', () => closeModal('find-replace-modal'));
+
+    // Manage Lists
+    const btnManageSave = document.getElementById('btn-manage-save');
+    if (btnManageSave) btnManageSave.addEventListener('click', handleManageListsSave);
+    const btnManageCancel = document.getElementById('btn-manage-cancel');
+    if (btnManageCancel) btnManageCancel.addEventListener('click', () => closeModal('manage-lists-modal'));
+    const btnManageDelAll = document.getElementById('btn-manage-delete-all');
+    if (btnManageDelAll) btnManageDelAll.addEventListener('click', handleDeleteAllValues);
+    const btnManageImport = document.getElementById('btn-manage-import');
+    if (btnManageImport) btnManageImport.addEventListener('click', handleImportAutocomplete);
+    
+    // Al cambiar la columna en el modal, actualizar la lista visual
+    const selectManageCol = document.getElementById('manage-list-column');
+    if (selectManageCol) selectManageCol.addEventListener('change', updateManageListsCurrentValues);
+
+    // Priority Rules
+    const btnRuleSave = document.getElementById('btn-save-rule');
+    if (btnRuleSave) btnRuleSave.addEventListener('click', handleSaveRule);
+    const btnRuleSettings = document.getElementById('btn-save-settings');
+    if (btnRuleSettings) btnRuleSettings.addEventListener('click', handleSaveSettings);
+    const btnRuleClose = document.getElementById('btn-rules-close');
+    if (btnRuleClose) btnRuleClose.addEventListener('click', () => closeModal('priority-rules-modal'));
+    const btnRuleClear = document.getElementById('btn-clear-rule-form');
+    if (btnRuleClear) btnRuleClear.addEventListener('click', resetRuleForm);
+    const btnAddCond = document.getElementById('btn-add-condition-row');
+    if (btnAddCond) btnAddCond.addEventListener('click', () => addConditionRow());
+
+    // Teclas rápidas globales (Hotkeys)
+    document.addEventListener('keydown', (e) => {
+        // F -> Focus en buscar
+        if ((e.key === 'f' || e.key === 'F') && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            e.preventDefault();
+            const search = document.getElementById('input-search-table');
+            if (search) search.focus();
+        }
+        // G -> Pantalla completa (Fullscreen)
+        if ((e.key === 'g' || e.key === 'G') && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            e.preventDefault();
+            handleFullscreen();
+        }
+        // ESC -> Cerrar modales o pantalla completa
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none'); // Cierre genérico
+            closeModal('bulk-edit-modal'); // Cierre específico para asegurar
+            closeModal('find-replace-modal');
+            closeModal('manage-lists-modal');
+            closeModal('priority-rules-modal');
+            closeModal('anomalies-modal');
+            
+            if (document.body.classList.contains('fullscreen-mode')) handleFullscreen();
+        }
+    });
+
+    console.log("✅ Event Listeners configurados correctamente.");
+}
+
+
+// ============================================================================
+// 12. INICIALIZACIÓN (DOM READY)
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1573,6 +1766,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateActionButtonsVisibility();
     }
     
-    // 3. Activar Eventos
+    // 3. Activar Eventos (AHORA SÍ LLAMAMOS A LA FUNCIÓN QUE DEFINIMOS ARRIBA)
     setupEventListeners();
 });
