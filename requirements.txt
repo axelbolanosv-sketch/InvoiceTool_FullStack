@@ -2,7 +2,7 @@ Flask
 Flask-Cors
 Flask-Session
 pandas
-numpy
+numpy<2.0.0
 openpyxl
 xlsxwriter
 openai
