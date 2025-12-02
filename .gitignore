@@ -1,0 +1,40 @@
+# --- Python & Bytecode ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Entornos Virtuales ---
+# Es crucial no subir el entorno virtual al repo
+venv/
+env/
+.venv/
+
+# --- Variables de Entorno & Secretos (CRÍTICO) ---
+# Protege tus claves de Azure OpenAI definidas en llm_agent.py
+.env
+
+# --- Flask & Web ---
+instance/
+.webassets-cache
+
+# --- Archivos Temporales del Proyecto ---
+# Según app.py, aquí se guardan los excels temporales y las sesiones
+temp_uploads/
+flask_session/
+
+# --- Archivos de Sistema Operativo ---
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+
+# --- IDEs (Opcional pero recomendado) ---
+.vscode/
+.idea/
+*.swp
