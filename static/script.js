@@ -2,23 +2,6 @@
  * ============================================================================
  * SCRIPT.JS - CONTROLADOR PRINCIPAL DEL CLIENTE
  * ============================================================================
- * Descripción:
- * Maneja toda la interactividad del navegador: tabla Tabulator, modales,
- * conexión con API (fetch), y lógica del Agente de IA.
- * Estructura:
- * 1. Variables Globales & Configuración
- * 2. Servicios UI & Utilidades (Toasts, Traducciones)
- * 3. Gestión de Archivos (Upload/Download)
- * 4. Motor de Tablas (Tabulator)
- * 5. Filtros, Vistas y Búsqueda
- * 6. Acciones de Fila (CRUD: Editar, Borrar, Deshacer)
- * 7. Operaciones Masivas (Bulk Edit, Find/Replace)
- * 8. Gestión de Duplicados
- * 9. Reglas de Negocio & Autocompletado
- * 10. Lógica del Chatbot IA
- * 11. Gestor de Eventos (SetupEventListeners)
- * 12. Inicialización (DOM Ready)
- * ============================================================================
  */
 
 // ============================================================================
@@ -42,6 +25,7 @@ const COLUMNAS_AGRUPABLES = [
 
 let tabulatorInstance = null;
 let groupedTabulatorInstance = null;
+let duplicatesTabulator = null; // Instancia separada para el modal de duplicados
 
 let i18n = {}; 
 let activeFilters = []; 
@@ -140,7 +124,7 @@ function showConfirm(title, message) {
             if (btnNo) btnNo.replaceWith(btnNo.cloneNode(true));
             if (modal) modal.style.display = 'none';
             
-            const otherModals = document.querySelectorAll('#bulk-edit-modal, #manage-lists-modal, #priority-rules-modal, #find-replace-modal, #anomalies-modal');
+            const otherModals = document.querySelectorAll('#bulk-edit-modal, #manage-lists-modal, #priority-rules-modal, #find-replace-modal, #anomalies-modal, #duplicates-modal');
             let anyVisible = false;
             otherModals.forEach(m => { if(m.style.display === 'flex' || m.style.display === 'block') anyVisible = true; });
             
@@ -158,17 +142,23 @@ function showConfirm(title, message) {
 // --- Utilidades de Modales ---
 function closeModal(id) {
     document.getElementById('modal-overlay').style.display = 'none';
-    document.getElementById(id).style.display = 'none';
+    const el = document.getElementById(id);
+    if(el) el.style.display = 'none';
 }
 
 function openModal(id, initFunc = null) {
-    ['bulk-edit-modal', 'manage-lists-modal', 'priority-rules-modal', 'find-replace-modal', 'anomalies-modal', 'custom-confirm-modal'].forEach(m => {
+    ['bulk-edit-modal', 'manage-lists-modal', 'priority-rules-modal', 'find-replace-modal', 'anomalies-modal', 'custom-confirm-modal', 'duplicates-modal'].forEach(m => {
         const el = document.getElementById(m);
         if(el) el.style.display = 'none';
     });
     document.getElementById('modal-overlay').style.display = 'flex';
-    document.getElementById(id).style.display = 'flex';
-    if(initFunc) initFunc();
+    const target = document.getElementById(id);
+    if(target) {
+        target.style.display = 'flex';
+        if(initFunc) initFunc();
+    } else {
+        console.error("Modal no encontrado: " + id);
+    }
 }
 
 
@@ -203,7 +193,6 @@ async function handleFileUpload(event) {
         populateColumnDropdowns(); 
         renderColumnSelector(); 
         updateVisibleColumnsFromCheckboxes();
-        // updateFilterInputAutocomplete(); // (Nota: Esta función no estaba definida en el script original subido, se comenta para evitar error si no existe en tu lógica personalizada, o asegúrate de tenerla)
         resetResumenCard(); 
         
         activeFilters = []; 
@@ -555,7 +544,6 @@ async function refreshActiveView() {
     updateActionButtonsVisibility();
 }
 
-// --- FUNCIONES DE POBLADO DE DROPDOWNS ---
 function populateGroupDropdown() {
     const select = document.getElementById('select-columna-agrupar');
     if (!select) return; 
@@ -570,7 +558,6 @@ function populateGroupDropdown() {
 }
 
 function populateColumnDropdowns() {
-    // 1. Selector de Filtro
     const filterSelect = document.getElementById('select-columna');
     if (filterSelect) {
         filterSelect.innerHTML = `<option value="">${i18n['column_select'] || 'Select column:'}</option>`;
@@ -610,7 +597,6 @@ function handleFullscreen() {
     document.body.classList.toggle('fullscreen-mode');
     if(container) container.classList.toggle('in-fullscreen');
     
-    // Icono SVG Toggle
     const isFull = document.body.classList.contains('fullscreen-mode');
     const svg = isFull 
         ? `<path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9V4.5M15 9h4.5M15 9l5.25-5.25M15 15v4.5M15 15h4.5M15 15l5.25 5.25" />`
@@ -620,7 +606,6 @@ function handleFullscreen() {
     setTimeout(() => { if (table) table.redraw(true); }, 200);
 }
 
-// --- Column Selection ---
 function renderColumnSelector() {
     const wrapper = document.getElementById('column-selector-wrapper');
     if (!wrapper) return;
@@ -886,27 +871,72 @@ async function handleBulkDelete() {
 // ============================================================================
 
 async function handleShowDuplicates() {
-    if (!currentFileId) return showToast("Cargue archivo.", "warning");
+    if (!currentFileId) return showToast("Cargue archivo primero.", "warning");
+    
+    const btn = document.getElementById('btn-show-duplicates');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+    btn.disabled = true;
+
     try {
         const response = await fetch('/api/get_duplicate_invoices', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ file_id: currentFileId })
         });
-        const res = await response.json(); if (!response.ok) throw new Error(res.error);
+        const res = await response.json(); 
+        
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+
+        if (!response.ok) throw new Error(res.error);
         
         if (res.num_filas > 0) {
-            showToast(`Se encontraron ${res.num_filas} duplicados.`, "info");
-            renderTable(res.data); activeFilters = []; renderFilters();
-            const btnReset = document.getElementById('btn-reset-view');
-            if(btnReset) btnReset.style.display = 'inline-block';
+            openModal('duplicates-modal', () => {
+                const countMsg = document.getElementById('duplicates-count-msg');
+                if(countMsg) countMsg.innerText = `Se encontraron ${res.num_filas} registros conflictivos.`;
 
-        } else showToast("No hay duplicados.", "success");
-    } catch (e) { showToast("Error Duplicados: " + e.message, "error"); }
+                const btnClean = document.getElementById('btn-modal-cleanup');
+                if(btnClean) {
+                    const newBtn = btnClean.cloneNode(true);
+                    btnClean.parentNode.replaceChild(newBtn, btnClean);
+                    newBtn.addEventListener('click', () => {
+                        handleCleanupDuplicates(); 
+                        closeModal('duplicates-modal'); 
+                    });
+                }
+
+                if (duplicatesTabulator) duplicatesTabulator.destroy();
+                
+                duplicatesTabulator = new Tabulator("#duplicates-table-container", {
+                    data: res.data,
+                    layout: "fitColumns",
+                    height: "100%",
+                    columns: [
+                        {title: "Fila", field: "_row_id", width: 70, formatter: c => c.getValue() + 1},
+                        {title: "Invoice #", field: "Invoice #", headerFilter: "input", width: 150},
+                        {title: "Vendor Name", field: "Vendor Name", width: 200},
+                        {title: "Monto", field: "Total", width: 120, hozAlign: "right"},
+                        {title: "Fecha", field: "Invoice Date", width: 120},
+                        {title: "Status", field: "Status", width: 120}
+                    ]
+                });
+            });
+            showToast(`Se encontraron ${res.num_filas} duplicados.`, "warning");
+        } else {
+            showToast("¡Excelente! No se encontraron facturas duplicadas.", "success");
+        }
+    } catch (e) { 
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        showToast("Error Duplicados: " + e.message, "error"); 
+    }
 }
 
 async function handleCleanupDuplicates() {
     if (!currentFileId) return showToast("Cargue archivo.", "warning");
-    if (!await showConfirm("Limpiar Duplicados", "¿Eliminar duplicados dejando solo el primero? (Deshacer disponible)")) return;
+    
+    if (!await showConfirm("Confirmar Limpieza", "¿Eliminar duplicados automáticamente? Se conservará la primera aparición.")) return;
+    
     try {
         const response = await fetch('/api/cleanup_duplicate_invoices', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -914,13 +944,16 @@ async function handleCleanupDuplicates() {
         });
         const res = await response.json(); if (!response.ok) throw new Error(res.error);
         
-        showToast(res.message, "success"); undoHistoryCount = res.history_count;
+        showToast(res.message, "success"); 
+        undoHistoryCount = res.history_count;
+        
         if (res.resumen) updateResumenCard(res.resumen);
-        updateActionButtonsVisibility(); await getFilteredData();
+        updateActionButtonsVisibility(); 
+        await getFilteredData(); 
+        
     } catch (e) { showToast("Error Cleanup: " + e.message, "error"); }
 }
 
-// --- ANÁLISIS DE ANOMALÍAS (IA / ESTADÍSTICA) ---
 async function handleAnalyzeAnomalies() {
     if (!currentFileId) return showToast("Cargue un archivo primero.", "warning");
     
@@ -1355,25 +1388,47 @@ async function handleSaveSettings() {
 
 
 // ============================================================================
-// 10. LÓGICA DEL CHATBOT IA
+// 10. LÓGICA DEL CHATBOT IA (ACTUALIZADO)
 // ============================================================================
 
-let chatOpen = true; // Estado inicial
+let chatOpen = false; // Empezamos CERRADO por defecto (más limpio)
 
 function toggleChat() {
-    const w = document.getElementById('chat-widget');
+    const windowEl = document.getElementById('chat-window');
+    const launcherEl = document.getElementById('chat-launcher');
+    const icon = launcherEl.querySelector('i');
+    
     chatOpen = !chatOpen;
-    w.classList.toggle('minimized', !chatOpen);
-    document.getElementById('chat-toggle-icon').innerText = chatOpen ? '▼' : '▲';
+    
+    if (chatOpen) {
+        windowEl.classList.add('visible');
+        launcherEl.classList.add('active');
+        // Opcional: Cambiar icono a 'X' al abrir
+        // icon.classList.remove('fa-robot');
+        // icon.classList.add('fa-times');
+        
+        // Auto-focus al abrir
+        setTimeout(() => document.getElementById('chat-input').focus(), 300);
+    } else {
+        windowEl.classList.remove('visible');
+        launcherEl.classList.remove('active');
+        // Restaurar icono
+        // icon.classList.add('fa-robot');
+        // icon.classList.remove('fa-times');
+    }
 }
 
-// Iniciar ABIERTO para probar
+// Inicialización específica del chat (Reemplaza el bloque chat del DOMContentLoaded anterior)
+// Nota: No necesitas borrar todo el DOMContentLoaded, solo asegúrate de que esto esté o reemplaza la verificación anterior.
+/* En tu setupEventListeners() existente, verifica que no haya referencias viejas a 'chat-header' para el toggle.
+   El nuevo HTML usa onclick="toggleChat()" directamente en el botón, así que es más simple.
+*/
+
 document.addEventListener('DOMContentLoaded', () => {
     const w = document.getElementById('chat-widget');
     if(w) { 
-        //w.classList.remove('minimized'); // Forzamos que se muestre grande
         chatOpen = true; 
-        console.log("✅ Chatbot inicializado correctamente"); // Mensaje en consola
+        console.log("✅ Chatbot inicializado correctamente"); 
     } else {
         console.error("❌ ERROR: No encuentro el div del chatbot en el HTML");
     }
@@ -1384,12 +1439,10 @@ async function sendMessage() {
     const txt = inp.value.trim();
     if(!txt) return;
     
-    // 1. Mostrar mensaje usuario
     addChatBubble(txt, 'user');
     inp.value = '';
-    inp.disabled = true; // Evitar doble envío
+    inp.disabled = true;
 
-    // Mostrar indicador de "Escribiendo..."
     const loadingId = addChatBubble("...", 'bot', true);
 
     try {
@@ -1400,13 +1453,9 @@ async function sendMessage() {
         });
         const data = await response.json();
         
-        // Quitar loading
         document.getElementById(loadingId).remove();
-
-        // 3. Mostrar respuesta bot
         addChatBubble(data.response, 'bot');
         
-        // 4. EJECUTAR ACCIONES DE IA
         if(data.actions && data.actions.length > 0) {
             for(let act of data.actions) {
                 console.log("Ejecutando acción IA:", act);
@@ -1423,12 +1472,10 @@ async function sendMessage() {
                 else if(act.action === 'trigger_anomalies') {
                     handleAnalyzeAnomalies();
                 }
-                // --- GESTIÓN DE VISTAS (REFRESH) ---
                 else if(act.action === 'refresh_table') {
                     await getFilteredData(); 
                     showToast("Tabla actualizada (Reglas aplicadas).", "success");
                 }
-                // --- GESTIÓN DE COLUMNAS (OCULTAR/MOSTRAR) ---
                 else if(act.action === 'manage_columns') {
                     const checkboxes = document.querySelectorAll('#column-selector-wrapper input[type="checkbox"]');
                     const targetCols = act.columns.map(c => c.toLowerCase());
@@ -1446,7 +1493,6 @@ async function sendMessage() {
                     updateVisibleColumnsFromCheckboxes();
                     showToast("Columnas actualizadas por IA", "success");
                 }
-                // --- BORRADO MASIVO (FILTRO) ---
                 else if(act.action === 'prepare_bulk_delete') {
                     activeFilters = [{columna: act.columna, valor: act.valor}]; 
                     await refreshActiveView();
@@ -1459,7 +1505,6 @@ async function sendMessage() {
                     }, 500);
                     showToast("Filtrado para eliminar. Confirma en el modal.", "warning");
                 }
-                // --- BORRADO QUIRÚRGICO (FILA INDIVIDUAL) ---
                 else if(act.action === 'delete_single_row_trigger') {
                     const rowId = act.row_id;
                     const row = tabulatorInstance.getRow(rowId);
@@ -1476,7 +1521,6 @@ async function sendMessage() {
                         showToast(`La fila ${rowId + 1} no se encuentra visible.`, "warning");
                     }
                 }
-                // --- BORRADO DE COLUMNA (PERMANENTE) ---
                 else if(act.action === 'delete_column_trigger') {
                     if(await showConfirm("Eliminar Columna", `La IA sugiere borrar permanentemente la columna "${act.columna}". ¿Proceder?`)) {
                         try {
@@ -1500,7 +1544,6 @@ async function sendMessage() {
                         }
                     }
                 }
-                // --- NUEVO: BORRADO MÚLTIPLE POR IDs ---
                 else if(act.action === 'delete_multiple_rows_by_id_trigger') {
                     const ids = act.row_ids;
                     const visuales = act.numeros_visuales;
@@ -1547,7 +1590,7 @@ function handleChatKey(e) { if(e.key === 'Enter') sendMessage(); }
 
 
 // ============================================================================
-// 11. GESTOR DE EVENTOS (MISSING FUNCTION)
+// 11. GESTOR DE EVENTOS
 // ============================================================================
 
 function setupEventListeners() {
@@ -1565,7 +1608,6 @@ function setupEventListeners() {
     const btnAddFilter = document.getElementById('btn-add-filter');
     if (btnAddFilter) btnAddFilter.addEventListener('click', handleAddFilter);
     
-    // Selectores de Columna (Marcar/Desmarcar todas)
     const btnCheckAll = document.getElementById('btn-check-all-cols');
     if (btnCheckAll) btnCheckAll.addEventListener('click', () => {
         document.querySelectorAll('#column-selector-wrapper input[type="checkbox"]').forEach(cb => cb.checked = true);
@@ -1578,7 +1620,6 @@ function setupEventListeners() {
         updateVisibleColumnsFromCheckboxes();
     });
 
-    // Delegación de eventos para los checkboxes de columnas (por si se generan dinámicamente)
     const colWrapper = document.getElementById('column-selector-wrapper');
     if (colWrapper) colWrapper.addEventListener('change', (e) => {
         if (e.target.matches('input[type="checkbox"]')) updateVisibleColumnsFromCheckboxes();
@@ -1597,9 +1638,6 @@ function setupEventListeners() {
     const btnShowDupes = document.getElementById('btn-show-duplicates');
     if (btnShowDupes) btnShowDupes.addEventListener('click', handleShowDuplicates);
 
-    const btnCleanDupes = document.getElementById('btn-cleanup-duplicates');
-    if (btnCleanDupes) btnCleanDupes.addEventListener('click', handleCleanupDuplicates);
-
     // 5. Vistas y Agrupación
     const btnViewDetailed = document.getElementById('btn-view-detailed');
     if (btnViewDetailed) btnViewDetailed.addEventListener('click', () => toggleView('detailed'));
@@ -1610,7 +1648,7 @@ function setupEventListeners() {
     const selectGroup = document.getElementById('select-columna-agrupar');
     if (selectGroup) selectGroup.addEventListener('change', handleGroupColumnChange);
 
-    // 6. Controles de Tabla (Búsqueda y Botones de Acción)
+    // 6. Controles de Tabla
     const inputSearch = document.getElementById('input-search-table');
     if (inputSearch) inputSearch.addEventListener('keyup', handleSearchTable);
 
@@ -1641,7 +1679,7 @@ function setupEventListeners() {
     const btnClearFiltersG = document.getElementById('btn-clear-filters-grouped');
     if (btnClearFiltersG) btnClearFiltersG.addEventListener('click', handleClearFilters);
 
-    // 7. Descargas y Pantalla Completa
+    // 7. Descargas
     const btnDownExcel = document.getElementById('btn-download-excel');
     if (btnDownExcel) btnDownExcel.addEventListener('click', handleDownloadExcel);
 
@@ -1655,19 +1693,16 @@ function setupEventListeners() {
     if (btnFullG) btnFullG.addEventListener('click', handleFullscreen);
 
     // 8. Modales (Botones internos)
-    // Bulk Edit
     const btnBulkApply = document.getElementById('btn-bulk-apply');
     if (btnBulkApply) btnBulkApply.addEventListener('click', handleBulkEditApply);
     const btnBulkCancel = document.getElementById('btn-bulk-cancel');
     if (btnBulkCancel) btnBulkCancel.addEventListener('click', () => closeModal('bulk-edit-modal'));
 
-    // Find & Replace
     const btnFindApply = document.getElementById('btn-find-replace-apply');
     if (btnFindApply) btnFindApply.addEventListener('click', handleFindReplaceApply);
     const btnFindCancel = document.getElementById('btn-find-replace-cancel');
     if (btnFindCancel) btnFindCancel.addEventListener('click', () => closeModal('find-replace-modal'));
 
-    // Manage Lists
     const btnManageSave = document.getElementById('btn-manage-save');
     if (btnManageSave) btnManageSave.addEventListener('click', handleManageListsSave);
     const btnManageCancel = document.getElementById('btn-manage-cancel');
@@ -1677,11 +1712,9 @@ function setupEventListeners() {
     const btnManageImport = document.getElementById('btn-manage-import');
     if (btnManageImport) btnManageImport.addEventListener('click', handleImportAutocomplete);
     
-    // Al cambiar la columna en el modal, actualizar la lista visual
     const selectManageCol = document.getElementById('manage-list-column');
     if (selectManageCol) selectManageCol.addEventListener('change', updateManageListsCurrentValues);
 
-    // Priority Rules
     const btnRuleSave = document.getElementById('btn-save-rule');
     if (btnRuleSave) btnRuleSave.addEventListener('click', handleSaveRule);
     const btnRuleSettings = document.getElementById('btn-save-settings');
@@ -1690,30 +1723,29 @@ function setupEventListeners() {
     if (btnRuleClose) btnRuleClose.addEventListener('click', () => closeModal('priority-rules-modal'));
     const btnRuleClear = document.getElementById('btn-clear-rule-form');
     if (btnRuleClear) btnRuleClear.addEventListener('click', resetRuleForm);
+    
     const btnAddCond = document.getElementById('btn-add-condition-row');
     if (btnAddCond) btnAddCond.addEventListener('click', () => addConditionRow());
 
-    // Teclas rápidas globales (Hotkeys)
+    // Teclas rápidas
     document.addEventListener('keydown', (e) => {
-        // F -> Focus en buscar
         if ((e.key === 'f' || e.key === 'F') && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
             e.preventDefault();
             const search = document.getElementById('input-search-table');
             if (search) search.focus();
         }
-        // G -> Pantalla completa (Fullscreen)
         if ((e.key === 'g' || e.key === 'G') && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
             e.preventDefault();
             handleFullscreen();
         }
-        // ESC -> Cerrar modales o pantalla completa
         if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none'); // Cierre genérico
-            closeModal('bulk-edit-modal'); // Cierre específico para asegurar
+            document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+            closeModal('bulk-edit-modal');
             closeModal('find-replace-modal');
             closeModal('manage-lists-modal');
             closeModal('priority-rules-modal');
             closeModal('anomalies-modal');
+            closeModal('duplicates-modal');
             
             if (document.body.classList.contains('fullscreen-mode')) handleFullscreen();
         }
@@ -1728,7 +1760,7 @@ function setupEventListeners() {
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Verificar Conexión (Semáforo)
+    // 1. Verificar Conexión
     const statusEl = document.getElementById('system-status');
     if(statusEl) {
         fetch('/api/get_translations')
@@ -1738,7 +1770,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     statusEl.style.borderColor = "#22c55e";
                     statusEl.style.color = "#166534";
                     statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Sistema Conectado y Listo';
-                    // Ocultar después de 3 segundos si todo está bien
                     setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
                 } else throw new Error("Backend devolvió error");
             })
@@ -1747,7 +1778,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
     }
 
-    // 2. Cargar Datos de Sesión
+    // 2. Cargar Datos
     await loadTranslations();
     if (typeof SESSION_DATA !== 'undefined' && SESSION_DATA.file_id) {
         currentFileId = SESSION_DATA.file_id;
@@ -1766,6 +1797,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateActionButtonsVisibility();
     }
     
-    // 3. Activar Eventos (AHORA SÍ LLAMAMOS A LA FUNCIÓN QUE DEFINIMOS ARRIBA)
+    // 3. Activar Eventos
     setupEventListeners();
 });

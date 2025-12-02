@@ -8,7 +8,6 @@
     
     <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator_modern.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
@@ -87,7 +86,7 @@
         <button id="btn-show-duplicates" class="btn-small-link">
             <i class="fas fa-eye"></i> {{ get_text(lang, 'btn_show_duplicates') }}
         </button>
-        <button id="btn-cleanup-duplicates" class="btn-rojo-secundario" style="width: 100%; margin-top: 0.5rem;">
+        <button id="btn-cleanup-duplicates" class="btn-rojo-secundario" style="width: 100%; margin-top: 0.5rem; display:none;">
             <i class="fas fa-magic"></i> {{ get_text(lang, 'btn_cleanup_duplicates') }}
         </button>
     </aside>
@@ -237,28 +236,88 @@
             </div>
         </div>
 
-        <div id="manage-lists-modal" style="display: none;">
-            <h3>Administrar Autocompletado</h3>
+        <div id="manage-lists-modal" style="
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 90vw; 
+            height: 90vh; 
+            background: white; 
+            z-index: 10002; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); 
+            border-radius: 12px; 
+            flex-direction: column; 
+            overflow: hidden;
+            border: 1px solid #ccc;">
             
-            <div class="modal-form-group">
-                <label for="manage-list-column">Seleccionar Columna</label>
-                <select id="manage-list-column"></select>
+            <div class="modal-header-sticky" style="
+                background: #f8f9fa; 
+                padding: 15px 20px; 
+                border-bottom: 1px solid #ddd; 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center;
+                flex-shrink: 0;">
+                <h3 style="margin:0; font-size: 1.2rem; color: #1f2937;">
+                    <i class="fas fa-list-ul"></i> Administrar Listas
+                </h3>
+                <button onclick="closeModal('manage-lists-modal')" class="btn-close-x" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#6b7280;">&times;</button>
             </div>
             
-            <div class="modal-form-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <label style="margin:0;">Valores Guardados:</label>
-                    <div style="display: flex; gap: 5px;">
-                        <button id="btn-manage-delete-all" class="btn-rojo-secundario" style="width: auto; font-size: 0.8rem; padding: 4px 10px;" title="Eliminar TODA la lista">
-                            <i class="fas fa-trash-alt"></i> Borrar Lista
-                        </button>
-                        <button id="btn-manage-import" class="btn-small-link" style="width: auto; font-size: 0.8rem; padding: 4px 10px;" title="Leer valores del Excel">
-                            <i class="fas fa-file-import"></i> Importar Excel
-                        </button>
-                    </div>
+            <div style="
+                flex-grow: 1; 
+                overflow-y: auto; 
+                padding: 20px; 
+                background: #fff;">
+                
+                <div class="modal-form-group">
+                    <label for="manage-list-column">Seleccionar Columna</label>
+                    <select id="manage-list-column" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ccc;"></select>
                 </div>
-                <div id="current-list-values" class="values-display-box"></div>
+                
+                <div class="modal-form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label style="margin:0; font-weight:600;">Valores Guardados:</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btn-manage-delete-all" class="btn-rojo-secundario" style="width: auto; font-size: 0.8rem; padding: 4px 10px;" title="Eliminar TODA la lista">
+                                <i class="fas fa-trash-alt"></i> Borrar Lista
+                            </button>
+                            <button id="btn-manage-import" class="btn-small-link" style="width: auto; font-size: 0.8rem; padding: 4px 10px;" title="Leer valores del Excel">
+                                <i class="fas fa-file-import"></i> Importar Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div id="current-list-values" class="values-display-box" style="
+                        background: #f9fafb; 
+                        border: 1px solid #ddd; 
+                        border-radius: 8px; 
+                        padding: 10px; 
+                        min-height: 200px; 
+                        max-height: 40vh; 
+                        overflow-y: auto;"></div>
+                </div>
+                
+                <div class="modal-form-group">
+                    <label for="manage-list-input">Añadir Manualmente</label>
+                    <span class="input-help-text" style="display:block; margin-bottom:5px; color:#666; font-size:0.85rem;">Escriba valores nuevos separados por comas.</span>
+                    <textarea id="manage-list-input" rows="3" placeholder="Ej: Nuevo Valor 1, Nuevo Valor 2" style="width:100%; border-radius:6px; border:1px solid #ccc; padding:8px;"></textarea>
+                </div>
             </div>
+            
+            <div class="modal-buttons" style="
+                padding: 15px 20px; 
+                background: #f8f9fa; 
+                border-top: 1px solid #ddd; 
+                display: flex; 
+                justify-content: flex-end; 
+                gap: 10px;
+                flex-shrink: 0;">
+                <button id="btn-manage-cancel" class="btn-rojo-secundario">Cerrar</button>
+                <button id="btn-manage-save" class="btn-verde-secundario">Guardar Cambios</button>
+            </div>
+        </div>
             
             <div class="modal-form-group">
                 <label for="manage-list-input">Añadir Manualmente</label>
@@ -272,28 +331,93 @@
             </div>
         </div>
 
-        <div id="priority-rules-modal" style="display: none;">
-            <div class="modal-header-sticky">
-                <h3>Gestor de Reglas</h3>
-                <button id="btn-rules-close" class="btn-close-x"><i class="fas fa-times"></i></button>
+        <div id="priority-rules-modal" style="
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 90vw; 
+            height: 90vh; 
+            background: white; 
+            z-index: 10003; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); 
+            border-radius: 12px; 
+            flex-direction: column; 
+            overflow: hidden;
+            border: 1px solid #ccc;">
+            
+            <div class="modal-header-sticky" style="
+                background: #f8f9fa; 
+                padding: 15px 20px; 
+                border-bottom: 1px solid #ddd; 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center;
+                flex-shrink: 0;">
+                <h3 style="margin:0; font-size: 1.2rem; color: #1f2937;">
+                    <i class="fas fa-tasks"></i> Gestor de Reglas
+                </h3>
+                <button id="btn-rules-close" class="btn-close-x" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#6b7280;">&times;</button>
             </div>
             
-            <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #eee; background: #fdfdfd;">
-                <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Globales</h4>
-                <div style="display: flex; gap: 15px;">
-                    <label style="cursor:pointer;"><input type="checkbox" id="setting-scf"> Priorizar SCF</label>
-                    <label style="cursor:pointer;"><input type="checkbox" id="setting-age-sort"> Ordenar por Fecha</label>
+            <div style="
+                flex-grow: 1; 
+                overflow-y: auto; 
+                background: #f4f6f8;">
+                
+                <div style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; background: #fff; margin-bottom: 10px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 1rem; color:#374151;">Configuración Global</h4>
+                    <div style="display: flex; gap: 20px; align-items:center; flex-wrap:wrap;">
+                        <label style="cursor:pointer; display:flex; align-items:center; gap:5px;">
+                            <input type="checkbox" id="setting-scf" style="width:16px; height:16px;"> Priorizar SCF / Intercompany
+                        </label>
+                        <label style="cursor:pointer; display:flex; align-items:center; gap:5px;">
+                            <input type="checkbox" id="setting-age-sort" style="width:16px; height:16px;"> Ordenar por Fecha (Antigüedad)
+                        </label>
+                        <button id="btn-save-settings" class="btn-small-link" style="margin-left:auto;">Guardar Globales</button>
+                    </div>
                 </div>
-                <div style="text-align: right;">
-                    <button id="btn-save-settings" class="btn-small-link" style="width: auto;">Guardar Globales</button>
+
+                <div style="padding: 1.5rem; background: #fff; border-bottom: 1px solid #e5e7eb; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin: 0; font-size: 1rem; color:#374151;" id="rule-editor-title">Nueva Regla</h4>
+                        <button id="btn-clear-rule-form" class="btn-small-link" style="font-size: 0.85rem;">Limpiar Formulario</button>
+                    </div>
+
+                    <div id="conditions-container" style="margin-bottom: 15px; display:flex; flex-direction:column; gap:8px;"></div>
+                    
+                    <button id="btn-add-condition-row" class="btn-small-link" style="width: 100%; margin-bottom: 15px; border-style: dashed; justify-content:center;">
+                        <i class="fas fa-plus"></i> Añadir Otra Condición (AND)
+                    </button>
+
+                    <div class="modal-grid-2" style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin: 0;">
+                        <div>
+                            <label style="font-size: 0.9rem; font-weight:500; display:block; margin-bottom:5px;">Prioridad a aplicar:</label>
+                            <select id="rule-priority" style="width: 100%; padding:8px; border-radius:6px; border:1px solid #ccc;">
+                                <option value="Alta">Alta 🔴</option>
+                                <option value="Media" selected>Media 🟡</option>
+                                <option value="Baja">Baja 🟢</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.9rem; font-weight:500; display:block; margin-bottom:5px;">Razón (Etiqueta):</label>
+                            <input type="text" id="rule-reason" placeholder="Ej: Monto crítico" style="width: 100%; padding:8px; border-radius:6px; border:1px solid #ccc;">
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="rule-id-editing" value="">
+                    <button id="btn-save-rule" class="btn-verde-secundario" style="width: 100%; margin-top: 20px; padding:10px;">
+                        <i class="fas fa-save"></i> Guardar Regla
+                    </button>
+                </div>
+
+                <div style="padding: 1.5rem;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 1rem; color:#374151;">Reglas Activas</h4>
+                    <div id="rules-list-container" style="display:flex; flex-direction:column; gap:10px;"></div>
                 </div>
             </div>
-
-            <div style="padding: 1rem 1.5rem; background: #f4f6f8; border-bottom: 1px solid #eee;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h4 style="margin: 0; font-size: 0.9rem;" id="rule-editor-title">Nueva Regla</h4>
-                    <button id="btn-clear-rule-form" class="btn-small-link" style="width: auto; font-size: 0.8rem;">Limpiar / Cancelar</button>
-                </div>
+        </div>
 
                 <div id="conditions-container" style="margin-bottom: 10px;"></div>
                 
@@ -323,21 +447,151 @@
             <div id="rules-list-container"></div>
         </div>
 
-        <div id="anomalies-modal" style="display: none;">
-            <div class="modal-header-sticky">
-                <h3>Detección de Anomalías</h3>
-                <button onclick="closeModal('anomalies-modal')" class="btn-close-x"><i class="fas fa-times"></i></button>
+        <div id="anomalies-modal" style="
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 90vw; 
+            height: 90vh; 
+            background: white; 
+            z-index: 10001; /* Alto para flotar sobre todo */
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); 
+            border-radius: 12px; 
+            flex-direction: column; 
+            overflow: hidden;
+            border: 1px solid #ccc;">
+            
+            <div class="modal-header-sticky" style="
+                background: #f8f9fa; 
+                padding: 15px 20px; 
+                border-bottom: 1px solid #ddd; 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center;
+                flex-shrink: 0;">
+                <h3 style="margin:0; font-size: 1.2rem; color: #1f2937;">
+                    <i class="fas fa-search-dollar"></i> Detección de Anomalías
+                </h3>
+                <button onclick="closeModal('anomalies-modal')" class="btn-close-x" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#6b7280;">&times;</button>
             </div>
             
-            <div style="padding: 1.5rem; background-color: #FFF5F5; border-bottom: 1px solid #fee2e2;">
-                <h4 style="margin-top:0; color: #991B1B;"><i class="fas fa-exclamation-triangle"></i> Reporte de Riesgo</h4>
-                <p id="anomalies-summary-text" style="color: #7F1D1D; font-size: 0.9rem; margin-bottom: 0;">Calculando...</p>
+            <div style="padding: 1rem 1.5rem; background-color: #FEF2F2; border-bottom: 1px solid #FECACA; flex-shrink: 0;">
+                <h4 style="margin: 0 0 5px 0; color: #991B1B; font-size: 1rem; font-weight: 600;">
+                    <i class="fas fa-exclamation-triangle"></i> Reporte de Riesgo
+                </h4>
+                <p id="anomalies-summary-text" style="color: #7F1D1D; font-size: 0.95rem; margin: 0; line-height: 1.5;">
+                    Calculando...
+                </p>
             </div>
 
-            <div id="anomalies-table-container" style="width: 100%; background: white;"></div>
+            <div id="anomalies-table-container" style="
+                flex-grow: 1; 
+                width: 100%; 
+                position: relative; 
+                background: white; 
+                overflow: hidden;">
+                </div>
             
-            <div class="modal-buttons">
-                <button onclick="closeModal('anomalies-modal')" class="btn-small-link">Cerrar</button>
+            <div class="modal-buttons" style="
+                padding: 15px 20px; 
+                background: #f8f9fa; 
+                border-top: 1px solid #ddd; 
+                display: flex; 
+                justify-content: flex-end; 
+                align-items: center; 
+                flex-shrink: 0;">
+                <button onclick="closeModal('anomalies-modal')" class="btn-small-link">Cerrar Reporte</button>
+            </div>
+        </div>
+
+       <div id="duplicates-modal" style="
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 90vw; 
+            height: 90vh; 
+            background: white; 
+            /* Z-INDEX 20000: Asegura que quede ENCIMA del chatbot flotante */
+            z-index: 20000; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); 
+            border-radius: 12px; 
+            flex-direction: column; 
+            overflow: hidden;
+            border: 1px solid #ccc;">
+            
+            <div class="modal-header-sticky" style="
+                background: #f8f9fa; 
+                padding: 15px 20px; 
+                border-bottom: 1px solid #ddd; 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center;
+                flex-shrink: 0;">
+                <h3 style="margin:0; font-size: 1.2rem; color: #1f2937;"><i class="fas fa-clone"></i> Auditoría de Duplicados</h3>
+                <button onclick="closeModal('duplicates-modal')" class="btn-close-x" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#6b7280;">&times;</button>
+            </div>
+            
+            <div style="padding: 1rem 1.5rem; background-color: #FFFBEB; border-bottom: 1px solid #FCD34D; flex-shrink: 0;">
+                <p style="margin:0; color: #92400E; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-exclamation-circle" style="font-size: 1.1rem;"></i>
+                    <span>
+                        <strong>Atención:</strong> Las siguientes facturas comparten el mismo número. 
+                        Revíselas antes de ejecutar la limpieza.
+                    </span>
+                </p>
+            </div>
+
+            <div id="duplicates-table-container" style="
+                flex-grow: 1; 
+                width: 100%; 
+                position: relative; 
+                background: white; 
+                overflow: hidden;">
+                </div>
+            
+            <div class="modal-buttons" style="
+                padding: 15px 20px; 
+                background: #f8f9fa; 
+                border-top: 1px solid #ddd; 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                flex-shrink: 0;
+                gap: 20px;"> <span id="duplicates-count-msg" style="
+                    color: #4B5563; 
+                    font-weight: 500; 
+                    font-size: 0.95rem;
+                    background: #e5e7eb;
+                    padding: 5px 10px;
+                    border-radius: 6px;">
+                    Calculando...
+                </span>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="closeModal('duplicates-modal')" class="btn-small-link" style="white-space: nowrap;">
+                        Cerrar sin cambios
+                    </button>
+                    <button id="btn-modal-cleanup" class="btn-rojo-secundario" style="white-space: nowrap; box-shadow: 0 2px 5px rgba(220, 38, 38, 0.2);">
+                        <i class="fas fa-trash-alt"></i> Limpiar Duplicados (Mantener 1ro)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+            <div id="duplicates-table-container" style="flex-grow: 1; width: 100%; overflow: hidden; background: white;"></div>
+            
+            <div class="modal-buttons" style="justify-content: space-between;">
+                <span id="duplicates-count-msg" style="color: #666; font-size: 0.9rem; align-self: center;"></span>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="closeModal('duplicates-modal')" class="btn-small-link">Cerrar sin cambios</button>
+                    <button id="btn-modal-cleanup" class="btn-rojo-secundario">
+                        <i class="fas fa-trash-alt"></i> Limpiar Duplicados (Mantener 1ro)
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -354,20 +608,34 @@
             </div>
         </div>
 
-    </div> <div id="chat-widget">
-        <div id="chat-header" onclick="toggleChat()">
-            <span>🤖 Asistente IA</span>
-            <span id="chat-toggle-icon">▲</span>
-        </div>
-        <div id="chat-body">
-            <div id="chat-messages">
-                <div class="chat-msg bot">Hola, soy tu analista experto. ¿En qué te ayudo con las facturas?</div>
+    <div id="chat-container">
+        
+        <div id="chat-window">
+            <div id="chat-header">
+                <h4><span class="status-dot"></span> Asistente IA</h4>
+                <button class="btn-close-chat" onclick="toggleChat()" title="Minimizar">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
             </div>
-            <div id="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Ej: Filtra por Amazon..." onkeypress="handleChatKey(event)">
-                <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            
+            <div id="chat-body">
+                <div id="chat-messages">
+                    <div class="chat-msg bot">
+                        Hola 👋. Soy tu analista experto.<br>
+                        Puedo filtrar datos, borrar filas o buscar anomalías.<br>
+                        <strong>¿Qué necesitas hoy?</strong>
+                    </div>
+                </div>
+                <div id="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Escribe tu instrucción..." onkeypress="handleChatKey(event)">
+                    <button id="btn-send-chat" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                </div>
             </div>
         </div>
+
+        <button id="chat-launcher" onclick="toggleChat()" title="Abrir Asistente">
+            <i class="fas fa-robot"></i> </button>
+
     </div>
 
 
@@ -376,7 +644,6 @@
     </script>
 
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
-    
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
