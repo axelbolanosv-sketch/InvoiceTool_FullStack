@@ -1,0 +1,639 @@
+/* ==========================================================================
+   style.css - Hoja de Estilos Principal
+   PROYECTO: Buscador de Facturas Dinámico
+   VERSIÓN: 6.0 (Con Notificaciones y Modales Mejorados)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. VARIABLES & RESET
+   -------------------------------------------------------------------------- */
+:root {
+    /* Paleta de Colores */
+    --primary: #2563EB; 
+    --primary-hover: #1D4ED8; 
+    --primary-light: #EFF6FF;
+    
+    --success: #059669; 
+    --success-light: #ECFDF5;
+    
+    --danger: #DC2626; 
+    --danger-light: #FEF2F2;
+    
+    --warning: #D97706; 
+    --warning-light: #FFFBEB;
+    
+    /* Fondos y Textos */
+    --bg-body: #F3F4F6; 
+    --bg-surface: #FFFFFF; 
+    --bg-sidebar: #FFFFFF;
+    --text-main: #111827; 
+    --text-secondary: #6B7280; 
+    --text-placeholder: #9CA3AF;
+    
+    /* Bordes y Sombras */
+    --border: #E5E7EB; 
+    --border-focus: #bfdbfe;
+    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05); 
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1); 
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1); 
+    
+    /* Dimensiones y Tipografía */
+    --sidebar-width: 300px;
+    --font-family: 'Inter', sans-serif;
+    --radius-sm: 6px; 
+    --radius-md: 8px; 
+    --radius-lg: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body { 
+    margin: 0; 
+    font-family: var(--font-family); 
+    color: var(--text-main); 
+    background-color: var(--bg-body); 
+    min-height: 100vh; 
+    font-size: 14px; 
+    line-height: 1.5; 
+}
+
+/* --------------------------------------------------------------------------
+   2. LAYOUT PRINCIPAL
+   -------------------------------------------------------------------------- */
+
+/* Barra Lateral Izquierda */
+.sidebar {
+    width: var(--sidebar-width); 
+    background-color: var(--bg-sidebar); 
+    border-right: 1px solid var(--border);
+    height: 100vh; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    z-index: 50; 
+    overflow-y: auto; /* Scroll si el contenido es muy largo */
+    padding: 1.5rem;
+    display: flex; 
+    flex-direction: column; 
+    box-shadow: var(--shadow-sm);
+}
+
+/* Estilizado fino del scroll de la sidebar */
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.1); border-radius: 3px; }
+
+.sidebar h2 { font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0 0 1.5rem 0; }
+.sidebar h3 { font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; margin: 1.5rem 0 0.75rem 0; }
+
+/* Contenedor Principal Derecho */
+.content { 
+    margin-left: var(--sidebar-width); 
+    padding: 2rem; 
+    transition: margin-left 0.3s ease; 
+    max-width: 1800px; 
+    min-height: 100vh; 
+    display: flex; 
+    flex-direction: column; 
+}
+
+.content-header-sutil { margin-bottom: 1.5rem; flex-shrink: 0; }
+.content-header-sutil h1 { font-size: 1.875rem; font-weight: 700; color: var(--text-main); margin: 0; }
+.content-header-sutil span { color: var(--text-secondary); font-size: 1rem; }
+
+/* --------------------------------------------------------------------------
+   3. COMPONENTES UI (Botones, Inputs, Cards)
+   -------------------------------------------------------------------------- */
+
+/* -- Inputs Generales -- */
+input[type="text"], input[type="file"], select, textarea {
+    width: 100%; padding: 0.6rem; border: 1px solid var(--border); border-radius: var(--radius-md);
+    font-size: 0.9rem; font-family: var(--font-family); color: var(--text-main); background-color: var(--bg-surface);
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--border-focus); }
+
+/* -- Botones Base -- */
+button, .btn-small-link {
+    display: inline-flex; align-items: center; justify-content: center; padding: 0.6rem 1rem;
+    border-radius: var(--radius-md); font-weight: 500; font-size: 0.9rem; cursor: pointer;
+    border: 1px solid transparent; text-decoration: none; gap: 0.5rem; transition: all 0.2s;
+}
+
+/* Botones Primarios (Azules) */
+.btn-azul-secundario, #btn-add-filter { background-color: var(--primary); color: white; border: 1px solid var(--primary); }
+.btn-azul-secundario:hover, #btn-add-filter:hover { background-color: var(--primary-hover); }
+
+/* Botones Secundarios (Gris/Link) */
+.btn-small-link { background-color: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border); width: 100%; justify-content: flex-start; }
+.btn-small-link:hover { background-color: var(--bg-body); color: var(--text-main); border-color: #D1D5DB; }
+.btn-small-link i { width: 20px; text-align: center; }
+
+/* Botones de Acción (Verde/Rojo) */
+.btn-verde-secundario { background-color: var(--success-light); color: var(--success); }
+.btn-verde-secundario:hover { background-color: #D1FAE5; color: #047857; }
+
+.btn-rojo-secundario { background-color: var(--danger-light); color: var(--danger); }
+.btn-rojo-secundario:hover { background-color: #FEE2E2; color: #B91C1C; }
+
+/* Botones Icono Pequeños */
+.icon-button { width: 32px; height: 32px; padding: 0; border-radius: var(--radius-sm); border: 1px solid var(--border); color: var(--text-secondary); background: var(--bg-surface); }
+.icon-button:hover { background: var(--bg-body); color: var(--primary); border-color: var(--primary); }
+
+/* Grupo de botones columna */
+.column-toggle-buttons { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+.column-toggle-buttons .btn-small-link { width: auto; flex: 1; justify-content: center; }
+
+/* -- Cards Generales -- */
+.content-card {
+    background-color: var(--bg-surface); border-radius: var(--radius-lg); border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm); padding: 1.5rem; display: flex; flex-direction: column;
+    min-height: 0; 
+}
+
+/* --------------------------------------------------------------------------
+   4. MÓDULOS ESPECÍFICOS
+   -------------------------------------------------------------------------- */
+
+/* -- Uploader (Carga de Archivos) -- */
+.file-uploader-container { margin-bottom: 1rem; }
+.drag-drop-area { 
+    display: block; 
+    width: 100%;    
+    border: 2px dashed var(--border); 
+    border-radius: var(--radius-md); 
+    padding: 2rem 1rem; text-align: center; 
+    background-color: #FAFAFA; 
+    cursor: pointer; transition: border 0.2s;
+ }
+
+.drag-drop-area:hover { 
+    border-color: var(--primary); 
+    background-color: var(--primary-light); 
+}
+
+.file-list-item {
+    display: flex; align-items: center; padding: 10px;
+    background-color: #f7fafc; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 10px;
+}
+.file-icon {
+    width: 40px; height: 40px; min-width: 40px; 
+    margin-right: 15px; color: #4a5568;
+}
+
+.file-details {
+    display: flex;
+    flex-direction: column; 
+    justify-content: center;
+    overflow: hidden; 
+}
+.file-name {
+    font-weight: 500;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.file-size {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* -- Selector de Columnas (Sidebar) -- */
+#column-selector-wrapper {
+    max-height: 200px; 
+    min-height: 150px;
+    overflow-y: auto;  
+    border: 1px solid var(--border); background-color: #FAFAFA;
+    padding: 10px; border-radius: var(--radius-md); margin-bottom: 15px;
+}
+
+.column-selector-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 0; 
+}
+.column-selector-item label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    margin: 0; 
+}
+.column-selector-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px; 
+    cursor: pointer;
+    accent-color: var(--primary); 
+}
+
+#column-selector-wrapper::-webkit-scrollbar { width: 4px; }
+#column-selector-wrapper::-webkit-scrollbar-thumb { background-color: #CBD5E0; border-radius: 2px; }
+
+/* -- KPIs (Tarjetas de Resumen) -- */
+.resumen-busqueda { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; flex-shrink: 0; }
+.resumen-card-item { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; display: flex; align-items: center; gap: 1rem; box-shadow: var(--shadow-sm); }
+.card-titulo { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; }
+.card-valor { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+
+/* -- Controles de Tabla y Filtros -- */
+.table-controls {
+    background-color: var(--bg-body); padding: 0.75rem; border-radius: var(--radius-md);
+    display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem; border: 1px solid var(--border); flex-shrink: 0;
+}
+.filtro-chip { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 20px; padding: 0.3rem 0.8rem; font-size: 0.85rem; display: inline-flex; align-items: center; }
+.remove-filter-btn { margin-left: 6px; border: none; background: none; cursor: pointer; color: var(--text-placeholder); font-size: 1.1rem; }
+
+.search-wrapper { margin-left: auto; position: relative; }
+.search-wrapper input { padding-left: 2.25rem; border-radius: 20px; width: 250px; }
+.search-wrapper .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-placeholder); width: 16px; }
+
+.view-selector-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0 0.25rem; flex-shrink: 0; }
+.view-selector-buttons { background-color: #E5E7EB; padding: 4px; border-radius: var(--radius-md); display: inline-flex; }
+.view-button { background: transparent; border: none; color: var(--text-secondary); padding: 0.5rem 1rem; border-radius: 4px; }
+.view-button.active { background-color: var(--bg-surface); color: var(--text-main); font-weight: 600; shadow: var(--shadow-sm); }
+
+/* -- Tabulator (La Tabla) -- */
+.table-container-flotante {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    background-color: var(--bg-surface);
+    width: 100%; 
+    height: 65vh; 
+    overflow: hidden;
+}
+
+/* Overrides de Tabulator */
+.tabulator-header { background-color: #F9FAFB !important; border-bottom: 1px solid var(--border) !important; font-weight: 600; color: var(--text-secondary); }
+.tabulator-row { border-bottom: 1px solid #F3F4F6 !important; background-color: var(--bg-surface) !important; }
+.tabulator-row:hover { background-color: #F9FAFB !important; }
+.tabulator-row.tabulator-selected { background-color: #EFF6FF !important; }
+.tabulator-cell { border-right: none !important; color: var(--text-main); padding: 10px !important; }
+
+/* Colores Semánticos para Prioridades en Tabla */
+.tabulator-row.priority-alta { border-left: 4px solid var(--danger) !important; background-color: #FFF5F5 !important; }
+.tabulator-row.priority-media { border-left: 4px solid var(--warning) !important; }
+.tabulator-row.priority-baja { border-left: 4px solid var(--success) !important; }
+
+/* --------------------------------------------------------------------------
+   5. MODALES (VENTANAS EMERGENTES)
+   -------------------------------------------------------------------------- */
+#modal-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(17, 24, 39, 0.6); backdrop-filter: blur(4px);
+    z-index: 10000; display: none; align-items: center; justify-content: center;
+}
+#modal-overlay[style*="display: flex"] { display: flex !important; }
+
+/* Estilo Base para Modales Grandes */
+#bulk-edit-modal, #manage-lists-modal, #priority-rules-modal, #find-replace-modal, #anomalies-modal, #custom-confirm-modal {
+    background-color: var(--bg-surface); 
+    border: 1px solid var(--border); 
+    box-shadow: var(--shadow-lg); 
+    border-radius: var(--radius-lg); 
+    display: flex; 
+    flex-direction: column;
+    
+    /* Fix Dimensiones y Responsive */
+    width: 800px; 
+    max-width: 90vw; 
+    max-height: 85vh; 
+    overflow-y: auto; 
+}
+
+/* Corrección para el contenedor de lista de reglas */
+#rules-list-container {
+    background: #f9fafb;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    min-height: 250px;  
+    height: auto;       
+    overflow: visible;  
+    flex-shrink: 0;     
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Cabecera Sticky */
+#bulk-edit-modal h3, #manage-lists-modal h3, #priority-rules-modal h3, #find-replace-modal h3, #anomalies-modal h3, #custom-confirm-modal h3 {
+    background-color: #F9FAFB; padding: 1rem 1.5rem; margin: 0; 
+    border-bottom: 1px solid var(--border); font-size: 1.1rem; color: var(--text-main);
+    position: sticky; top: 0; z-index: 10;
+}
+
+/* Footer Sticky (Botones) */
+.modal-buttons { 
+    padding: 1rem 1.5rem; background-color: #F9FAFB; border-top: 1px solid var(--border); 
+    margin: 0; margin-top: auto; display: flex; justify-content: flex-end; gap: 1rem; 
+    position: sticky; bottom: 0; z-index: 10;
+}
+
+.modal-header-sticky {
+    display: flex;              
+    justify-content: space-between; 
+    align-items: center;        
+    background-color: #F9FAFB; 
+    padding: 1rem 1.5rem; 
+    border-bottom: 1px solid var(--border);
+    position: sticky; 
+    top: 0; 
+    z-index: 20;
+}
+
+.modal-header-sticky h3 {
+    margin: 0; 
+    font-size: 1.1rem; 
+    color: var(--text-main);
+}
+
+.btn-close-x {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.btn-close-x:hover {
+    background-color: #FEE2E2; 
+    color: var(--danger);      
+}
+
+/* Componentes Internos de Modal */
+.modal-form-group { margin-bottom: 1rem; padding: 0 1.5rem; }
+.modal-form-group:first-of-type { margin-top: 1.5rem; }
+.modal-form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-main); font-size: 0.9rem; }
+.modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 0 1.5rem; margin-bottom: 1rem; }
+.input-help-text { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.4; }
+
+.values-display-box { 
+    background: #f9fafb; border: 1px solid var(--border); border-radius: var(--radius-md); 
+    padding: 0.5rem; min-height: 60px; max-height: 150px; overflow-y: auto; font-size: 0.85rem; color: var(--text-secondary);
+}
+.rule-item { 
+    display: flex; justify-content: space-between; align-items: center; 
+    background: white; border: 1px solid var(--border); padding: 0.5rem 0.8rem; 
+    margin-bottom: 0.5rem; border-radius: var(--radius-sm); 
+}
+.btn-delete-rule { background: transparent; border: none; color: var(--text-placeholder); cursor: pointer; font-size: 1.1rem; padding: 4px; }
+.btn-delete-rule:hover { color: var(--danger); }
+
+/* --------------------------------------------------------------------------
+   6. ESTADOS (FULLSCREEN)
+   -------------------------------------------------------------------------- */
+body.fullscreen-mode .sidebar { display: none !important; }
+body.fullscreen-mode .content {
+    margin-left: 0 !important; padding: 1rem !important; width: 100vw !important; max-width: none !important;
+    position: static !important; height: auto !important; min-height: 100vh; z-index: auto; overflow: visible !important; 
+}
+.content-card.in-fullscreen { border: none !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 0; }
+body.fullscreen-mode .content-header-sutil, body.fullscreen-mode .resumen-busqueda, body.fullscreen-mode .content-card .card-header { display: none !important; }
+body.fullscreen-mode .view-selector-container { display: flex !important; justify-content: center; margin-top: 0 !important; margin-bottom: 1rem !important; padding-left: 0 !important; }
+body.fullscreen-mode .content-card .table-controls { display: flex !important; }
+body.fullscreen-mode .table-container-flotante { height: 85vh !important; }
+
+/* Etiquetas de Autocompletado */
+.value-chip {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e5e7eb; 
+    border-radius: 16px;       
+    padding: 4px 12px;
+    margin: 4px;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    border: 1px solid #d1d5db;
+    transition: background 0.2s;
+}
+
+.value-chip:hover {
+    background-color: #d1d5db;
+}
+
+.value-chip .remove-icon {
+    margin-left: 8px;
+    cursor: pointer;
+    color: #6b7280;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: 50%;
+}
+
+.value-chip .remove-icon:hover {
+    color: var(--danger); 
+    background-color: rgba(220, 38, 38, 0.1);
+}
+
+/* --------------------------------------------------------------------------
+   7. RESPONSIVE (MEDIA QUERIES)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) { 
+    .sidebar { width: 260px; } 
+    .content { margin-left: 260px; } 
+}
+@media (max-width: 768px) { 
+    .sidebar { display: none; } 
+    .content { margin-left: 0; padding: 1rem; } 
+}
+
+/* ==========================================================================
+   MEJORAS VISUALES v7.0 (Anomalies & Toasts)
+   ========================================================================== */
+
+/* --- Modal de Anomalías "Pantalla Completa" --- */
+#anomalies-modal {
+    width: 95vw !important;        
+    height: 90vh !important;      
+    max-width: none !important;    
+    max-height: none !important;   
+}
+
+#anomalies-table-container {
+    flex-grow: 1;         
+    height: 100%;         
+    width: 100%;
+    margin-bottom: 0;    
+    overflow: auto; /* Scroll permitido */
+}
+
+/* --- SISTEMA DE NOTIFICACIONES (TOASTS) --- */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 11000; /* Por encima de los modales */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background-color: var(--bg-surface);
+    border-left: 5px solid var(--primary); /* Color por defecto */
+    color: var(--text-main);
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideIn 0.3s ease forwards;
+    opacity: 0; /* Empieza invisible para la animación */
+}
+
+/* Tipos de Notificaciones */
+.toast.success { border-left-color: var(--success); }
+.toast.error { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+
+/* Animación de entrada */
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+
+/* Usamos .tabulator-row .tabulator-cell para ganar especificidad */
+.tabulator-row .tabulator-cell.priority-alta {
+    background-color: #fee2e2 !important; /* Rojo suave */
+    color: #991b1b !important;
+    border-right: 1px solid #fecaca; /* Borde sutil para separar */
+}
+
+.tabulator-row .tabulator-cell.priority-media {
+    background-color: #fef3c7 !important; /* Amarillo suave */
+    color: #92400e !important;
+    border-right: 1px solid #fde68a;
+}
+
+.tabulator-row .tabulator-cell.priority-baja {
+    background-color: #d1fae5 !important; /* Verde suave */
+    color: #065f46 !important;
+    border-right: 1px solid #a7f3d0;
+}
+
+/* CORRECCIÓN PARA COLUMNAS CONGELADAS (FROZEN) */
+/* Tabulator a veces añade una capa extra o clases específicas para lo congelado */
+.tabulator-row .tabulator-cell.tabulator-frozen.priority-alta {
+    background-color: #f6b0b0 !important;
+}
+.tabulator-row .tabulator-cell.tabulator-frozen.priority-media {
+    background-color: #ffe57b !important;
+}
+.tabulator-row .tabulator-cell.tabulator-frozen.priority-baja {
+    background-color: #62ffae !important;
+}
+
+/* Animación de salida (se agrega con JS) */
+.toast.hide {
+    animation: slideOut 0.3s ease forwards;
+}
+
+/* --- CHATBOT FLOTANTE --- */
+/* static/style.css - CAMBIO TEMPORAL DE DEBUG */
+#chat-widget {
+    position: fixed; 
+    bottom: 20px; 
+    right: 20px; 
+    width: 320px;
+    /* Quitamos el height fijo para que la clase .minimized funcione */
+    background: white; 
+    border-radius: 12px 12px 0 0; 
+    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+    z-index: 12000; 
+    overflow: hidden; 
+    display: flex; 
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border: 1px solid #e5e7eb; /* Borde sutil gris, adiós al rojo */
+}
+/* Comenta o borra la clase minimized temporalmente */
+/* #chat-widget.minimized { height: 50px; } */
+
+#chat-widget.minimized { height: 50px; }
+
+#chat-header {
+    background: var(--primary); 
+    color: white; 
+    padding: 15px; 
+    cursor: pointer;
+    font-weight: 600; 
+    display: flex; 
+    justify-content: space-between;
+    align-items: center;
+}
+
+#chat-body { height: 400px; display: flex; flex-direction: column; background-color: #f9fafb; }
+
+#chat-messages { 
+    flex: 1; 
+    padding: 15px; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+}
+
+.chat-msg { 
+    padding: 10px 14px; 
+    border-radius: 12px; 
+    font-size: 0.9rem; 
+    max-width: 85%; 
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.chat-msg.user { 
+    background: var(--primary-light); 
+    color: var(--primary-hover); 
+    align-self: flex-end; 
+    border-bottom-right-radius: 2px;
+}
+
+.chat-msg.bot { 
+    background: white; 
+    border: 1px solid #e5e7eb; 
+    color: var(--text-main); 
+    align-self: flex-start; 
+    border-bottom-left-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+#chat-input-area { 
+    display: flex; 
+    border-top: 1px solid #e5e7eb; 
+    padding: 10px; 
+    background: white; 
+}
+
+#chat-input-area input { 
+    flex: 1; 
+    border: 1px solid #d1d5db; 
+    border-radius: 20px; 
+    padding: 8px 15px; 
+    font-size: 0.9rem; 
+    outline: none; 
+}
+
+#chat-input-area input:focus { border-color: var(--primary); }
+
+#chat-input-area button { 
+    background: none; 
+    border: none; 
+    color: var(--primary); 
+    cursor: pointer; 
+    margin-left: 8px; 
+    font-size: 1.1rem; 
+}
+#chat-input-area button:hover { color: var(--primary-hover); transform: scale(1.1); }
+
+@keyframes slideOut {
+    to { transform: translateX(110%); opacity: 0; }
+}

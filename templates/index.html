@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ get_text(lang, 'title') }}</title>
+    
+    <link href="https://unpkg.com/tabulator-tables@5.6.1/dist/css/tabulator_modern.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <aside class="sidebar">
+        
+        <div class="lang-selector" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+            <button id="btn-lang-es" class="btn-small-link {{ 'active' if lang == 'es' else '' }}" style="flex: 1; justify-content: center;">Español</button>
+            <button id="btn-lang-en" class="btn-small-link {{ 'active' if lang == 'en' else '' }}" style="flex: 1; justify-content: center;">English</button>
+        </div>
+
+        <div id="system-status" style="padding: 10px; background: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; margin-bottom: 15px; font-size: 0.8rem; color: #991b1b;">
+            <i class="fas fa-circle-notch fa-spin"></i> Comprobando conexión...
+        </div>
+
+        <h2>{{ get_text(lang, 'control_area') }}</h2>
+
+        <h3>1. {{ get_text(lang, 'uploader_label') }}</h3>
+        <div class="file-uploader-container">
+            <label class="drag-drop-area" for="file-uploader">
+                <p style="margin:0; font-weight:500;">Click o Arrastrar archivo</p>
+                <span style="font-size:0.8rem; color:#666;">.xlsx (Max 200MB)</span>
+            </label>
+            <input type="file" id="file-uploader" accept=".xlsx" multiple style="display: none;">
+            <div id="file-upload-list"></div>
+        </div>
+
+        <h3>2. {{ get_text(lang, 'add_filter_header') }}</h3>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <select id="select-columna">
+                <option value="">{{ get_text(lang, 'column_select') }}</option>
+            </select>
+            <input type="text" id="input-valor" placeholder="{{ get_text(lang, 'search_text') }}" list="input-valor-list">
+            <datalist id="input-valor-list"></datalist>
+            <button id="btn-add-filter" class="btn-azul-secundario" style="width: 100%;">{{ get_text(lang, 'add_filter_button') }}</button>
+        </div>
+
+        <h3>3. {{ get_text(lang, 'visible_columns_header') }}</h3>
+        <div class="column-toggle-buttons">
+            <button id="btn-check-all-cols" class="btn-small-link">{{ get_text(lang, 'check_all_button') }}</button>
+            <button id="btn-uncheck-all-cols" class="btn-small-link">{{ get_text(lang, 'uncheck_all_button') }}</button>
+        </div>
+        <div id="column-selector-wrapper">
+            <p style="font-size: 0.85rem; color: #666;">{{ get_text(lang, 'info_upload') }}</p> 
+        </div>
+
+        <h3>4. {{ get_text(lang, 'manage_lists_header') }}</h3>
+        <button id="btn-manage-lists" class="btn-small-link">
+            <i class="fas fa-list"></i> {{ get_text(lang, 'manage_lists_button') }}
+        </button>
+
+        <h3>5. Vistas Guardadas</h3>
+        <div style="display: flex; gap: 0.5rem;">
+            <button id="btn-save-view" class="btn-small-link" title="Descargar configuración actual">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+            <label for="input-load-view" class="btn-small-link" title="Cargar configuración" style="cursor: pointer; margin:0;">
+                <i class="fas fa-folder-open"></i> Cargar
+            </label>
+            <input type="file" id="input-load-view" accept=".json" style="display: none;">
+        </div>
+
+        <h3>6. Automatización</h3>
+        <button id="btn-priority-rules" class="btn-small-link">
+            <i class="fas fa-tasks"></i> Configurar Reglas
+        </button>
+
+        <h3>7. Análisis Inteligente</h3>
+        <button id="btn-analyze-anomalies" class="btn-small-link" style="color: var(--primary); border-color: var(--primary);">
+            <i class="fas fa-search-dollar"></i> Detectar Anomalías
+        </button>
+
+        <h3>8. {{ get_text(lang, 'data_cleaning_header') }}</h3>
+        <p style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">{{ get_text(lang, 'data_cleaning_desc') }}</p>
+        <button id="btn-show-duplicates" class="btn-small-link">
+            <i class="fas fa-eye"></i> {{ get_text(lang, 'btn_show_duplicates') }}
+        </button>
+        <button id="btn-cleanup-duplicates" class="btn-rojo-secundario" style="width: 100%; margin-top: 0.5rem;">
+            <i class="fas fa-magic"></i> {{ get_text(lang, 'btn_cleanup_duplicates') }}
+        </button>
+    </aside>
+
+
+    <main class="content">
+        
+        <div class="content-header-sutil">
+            <h1>{{ get_text(lang, 'title') }}</h1>
+            <span>{{ get_text(lang, 'subtitle') }}</span>
+        </div>
+        
+        <div class="resumen-busqueda">
+            <div class="resumen-card-item card-blue">
+                <div class="card-icon"><i class="fas fa-file-invoice"></i></div>
+                <div class="card-data">
+                    <span class="card-titulo">{{ get_text(lang, 'summary_total_invoices') }}</span>
+                    <span class="card-valor" id="resumen-total-facturas">0</span>
+                </div>
+            </div>
+            <div class="resumen-card-item card-green">
+                <div class="card-icon"><i class="fas fa-dollar-sign"></i></div>
+                <div class="card-data">
+                    <span class="card-titulo">{{ get_text(lang, 'summary_total_amount') }}</span>
+                    <span class="card-valor" id="resumen-monto-total">$0.00</span>
+                </div>
+            </div>
+            <div class="resumen-card-item card-purple">
+                <div class="card-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="card-data">
+                    <span class="card-titulo">{{ get_text(lang, 'summary_avg_amount') }}</span>
+                    <span class="card-valor" id="resumen-monto-promedio">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="view-selector-container">
+            <div class="view-selector-buttons">
+                <button id="btn-view-detailed" class="view-button active">{{ get_text(lang, 'view_type_detailed') }}</button>
+                <button id="btn-view-grouped" class="view-button">{{ get_text(lang, 'view_type_grouped') }}</button>
+            </div>
+            
+            <div id="group-by-controls-wrapper" style="display: none; align-items: center; gap: 10px;">
+                <label for="select-columna-agrupar" style="font-weight: 500;">{{ get_text(lang, 'group_by_select') }}</label>
+                <select id="select-columna-agrupar" style="width: 200px; padding: 0.4rem;">
+                    <option value="">{{ get_text(lang, 'group_by_placeholder') }}</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="view-container-detailed" class="content-card" style="display: flex;">
+            <div class="table-controls">
+                <div id="active-filters-list" style="flex-grow: 1; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+                
+                <button id="btn-bulk-edit" class="btn-azul-secundario" style="display: none;">Editar</button>
+                <button id="btn-find-replace" class="btn-azul-secundario" style="display: none;">Buscar/Reemplazar</button>
+                <button id="btn-bulk-delete" class="btn-rojo-secundario" style="display: none;">Eliminar</button>
+                
+                <button id="btn-add-row" class="btn-verde-secundario" style="display: none;">+ Fila</button>
+                <button id="btn-commit-changes" class="btn-verde-secundario" style="display: none;">Consolidar</button>
+                <button id="btn-download-audit-log" class="btn-azul-secundario" style="display: none;" title="Descargar Auditoría"><i class="fas fa-history"></i></button>
+                <button id="btn-undo-change" class="btn-rojo-secundario" style="display: none;">Deshacer</button>
+                <button id="btn-clear-filters" class="btn-rojo-secundario" style="display: none;">Limpiar Filtros</button>
+                <button id="btn-reset-view" class="btn-azul-secundario" style="display: none;">
+                    <i class="fas fa-sync-alt"></i> Ver Todas
+                </button>
+
+                <div class="search-wrapper">
+                    <input type="text" id="input-search-table" placeholder="Buscar... (F)">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+            </div>
+
+            <div style="position: relative; flex-grow: 1; min-height: 0;">
+                <div style="position: absolute; top: -45px; right: 0; display: flex; gap: 5px;">
+                    <button id="btn-fullscreen" class="icon-button" title="Pantalla Completa (G)"><i class="fas fa-expand"></i></button>
+                    <button id="btn-download-excel" class="icon-button" title="Descargar Excel"><i class="fas fa-download"></i></button>
+                </div>
+                <div id="results-table" class="table-container-flotante"></div>
+            </div>
+        </div>
+
+        <div id="view-container-grouped" class="content-card" style="display: none;">
+            <div class="table-controls">
+                <div id="active-filters-list-grouped" style="flex-grow: 1; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+                <button id="btn-clear-filters-grouped" class="btn-rojo-secundario" style="display: none;">Limpiar Filtros</button>
+            </div>
+            
+            <div style="position: relative; flex-grow: 1; min-height: 0;">
+                <div style="position: absolute; top: -45px; right: 0; display: flex; gap: 5px;">
+                    <button id="btn-fullscreen-grouped" class="icon-button"><i class="fas fa-expand"></i></button>
+                    <button id="btn-download-excel-grouped" class="icon-button"><i class="fas fa-download"></i></button>
+                </div>
+                <div id="results-table-grouped" class="table-container-flotante"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container" class="toast-container"></div>
+
+
+    <div id="modal-overlay">
+        
+        <div id="bulk-edit-modal" style="display: none;">
+            <h3>Editar Filas Seleccionadas</h3>
+            <p id="bulk-edit-count" style="padding: 0 1.5rem; margin-top: 1rem; color: #666;">Calculando...</p>
+            
+            <div class="modal-form-group">
+                <label for="bulk-edit-column">Columna a Modificar</label>
+                <select id="bulk-edit-column"></select>
+            </div>
+            <div class="modal-form-group">
+                <label for="bulk-edit-value">Nuevo Valor</label>
+                <input type="text" id="bulk-edit-value" list="bulk-edit-value-list">
+                <datalist id="bulk-edit-value-list"></datalist>
+            </div>
+            
+            <div class="modal-buttons">
+                <button id="btn-bulk-cancel" class="btn-rojo-secundario">Cancelar</button>
+                <button id="btn-bulk-apply" class="btn-verde-secundario">Aplicar</button>
+            </div>
+        </div>
+
+        <div id="find-replace-modal" style="display: none;">
+            <h3>Buscar y Reemplazar</h3>
+            <p id="find-replace-count" style="padding: 0 1.5rem; margin-top: 1rem; color: #666;">Calculando...</p>
+            
+            <div class="modal-form-group">
+                <label for="find-replace-column">Columna Objetivo</label>
+                <select id="find-replace-column"></select>
+            </div>
+            
+            <div class="modal-grid-2">
+                <div class="modal-form-group">
+                    <label for="find-replace-find-text">Buscar (Coincidencia Exacta)</label>
+                    <input type="text" id="find-replace-find-text">
+                </div>
+                <div class="modal-form-group">
+                    <label for="find-replace-replace-text">Reemplazar con</label>
+                    <input type="text" id="find-replace-replace-text">
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button id="btn-find-replace-cancel" class="btn-rojo-secundario">Cancelar</button>
+                <button id="btn-find-replace-apply" class="btn-verde-secundario">Reemplazar Todo</button>
+            </div>
+        </div>
+
+        <div id="manage-lists-modal" style="display: none;">
+            <h3>Administrar Autocompletado</h3>
+            
+            <div class="modal-form-group">
+                <label for="manage-list-column">Seleccionar Columna</label>
+                <select id="manage-list-column"></select>
+            </div>
+            
+            <div class="modal-form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <label style="margin:0;">Valores Guardados:</label>
+                    <div style="display: flex; gap: 5px;">
+                        <button id="btn-manage-delete-all" class="btn-rojo-secundario" style="width: auto; font-size: 0.8rem; padding: 4px 10px;" title="Eliminar TODA la lista">
+                            <i class="fas fa-trash-alt"></i> Borrar Lista
+                        </button>
+                        <button id="btn-manage-import" class="btn-small-link" style="width: auto; font-size: 0.8rem; padding: 4px 10px;" title="Leer valores del Excel">
+                            <i class="fas fa-file-import"></i> Importar Excel
+                        </button>
+                    </div>
+                </div>
+                <div id="current-list-values" class="values-display-box"></div>
+            </div>
+            
+            <div class="modal-form-group">
+                <label for="manage-list-input">Añadir Manualmente</label>
+                <span class="input-help-text">Escriba valores nuevos separados por comas.</span>
+                <textarea id="manage-list-input" rows="2" placeholder="Ej: Nuevo Valor 1, Nuevo Valor 2"></textarea>
+            </div>
+            
+            <div class="modal-buttons">
+                <button id="btn-manage-cancel" class="btn-rojo-secundario">Cerrar</button>
+                <button id="btn-manage-save" class="btn-verde-secundario">Guardar Cambios</button>
+            </div>
+        </div>
+
+        <div id="priority-rules-modal" style="display: none;">
+            <div class="modal-header-sticky">
+                <h3>Gestor de Reglas</h3>
+                <button id="btn-rules-close" class="btn-close-x"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #eee; background: #fdfdfd;">
+                <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Globales</h4>
+                <div style="display: flex; gap: 15px;">
+                    <label style="cursor:pointer;"><input type="checkbox" id="setting-scf"> Priorizar SCF</label>
+                    <label style="cursor:pointer;"><input type="checkbox" id="setting-age-sort"> Ordenar por Fecha</label>
+                </div>
+                <div style="text-align: right;">
+                    <button id="btn-save-settings" class="btn-small-link" style="width: auto;">Guardar Globales</button>
+                </div>
+            </div>
+
+            <div style="padding: 1rem 1.5rem; background: #f4f6f8; border-bottom: 1px solid #eee;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="margin: 0; font-size: 0.9rem;" id="rule-editor-title">Nueva Regla</h4>
+                    <button id="btn-clear-rule-form" class="btn-small-link" style="width: auto; font-size: 0.8rem;">Limpiar / Cancelar</button>
+                </div>
+
+                <div id="conditions-container" style="margin-bottom: 10px;"></div>
+                
+                <button id="btn-add-condition-row" class="btn-small-link" style="width: 100%; margin-bottom: 10px; border-style: dashed;">
+                    <i class="fas fa-plus"></i> Añadir Otra Condición (AND)
+                </button>
+
+                <div class="modal-grid-2" style="padding: 0; margin: 0;">
+                    <div>
+                        <label style="font-size: 0.8rem;">Entonces aplicar Prioridad:</label>
+                        <select id="rule-priority" style="width: 100%;">
+                            <option value="Alta">Alta</option>
+                            <option value="Media" selected>Media</option>
+                            <option value="Baja">Baja</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem;">Razón (Etiqueta):</label>
+                        <input type="text" id="rule-reason" placeholder="Ej: Monto Alto" style="width: 100%;">
+                    </div>
+                </div>
+                
+                <input type="hidden" id="rule-id-editing" value="">
+                <button id="btn-save-rule" class="btn-verde-secundario" style="width: 100%; margin-top: 1rem;">Guardar Regla</button>
+            </div>
+
+            <div id="rules-list-container"></div>
+        </div>
+
+        <div id="anomalies-modal" style="display: none;">
+            <div class="modal-header-sticky">
+                <h3>Detección de Anomalías</h3>
+                <button onclick="closeModal('anomalies-modal')" class="btn-close-x"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div style="padding: 1.5rem; background-color: #FFF5F5; border-bottom: 1px solid #fee2e2;">
+                <h4 style="margin-top:0; color: #991B1B;"><i class="fas fa-exclamation-triangle"></i> Reporte de Riesgo</h4>
+                <p id="anomalies-summary-text" style="color: #7F1D1D; font-size: 0.9rem; margin-bottom: 0;">Calculando...</p>
+            </div>
+
+            <div id="anomalies-table-container" style="width: 100%; background: white;"></div>
+            
+            <div class="modal-buttons">
+                <button onclick="closeModal('anomalies-modal')" class="btn-small-link">Cerrar</button>
+            </div>
+        </div>
+
+        <div id="custom-confirm-modal" style="display: none; width: 400px; max-width: 90vw;">
+            <h3 id="confirm-title" style="background-color: #F9FAFB; padding: 1rem; border-bottom: 1px solid var(--border); margin: 0;">Confirmación</h3>
+            
+            <div style="padding: 1.5rem; text-align: center;">
+                <p id="confirm-msg" style="font-size: 1rem; color: var(--text-main); margin-bottom: 1.5rem;">¿Estás seguro?</p>
+                
+                <div style="display: flex; justify-content: center; gap: 1rem;">
+                    <button id="btn-confirm-no" class="btn-rojo-secundario" style="width: 100px;">Cancelar</button>
+                    <button id="btn-confirm-yes" class="btn-verde-secundario" style="width: 100px;">Aceptar</button>
+                </div>
+            </div>
+        </div>
+
+    </div> <div id="chat-widget">
+        <div id="chat-header" onclick="toggleChat()">
+            <span>🤖 Asistente IA</span>
+            <span id="chat-toggle-icon">▲</span>
+        </div>
+        <div id="chat-body">
+            <div id="chat-messages">
+                <div class="chat-msg bot">Hola, soy tu analista experto. ¿En qué te ayudo con las facturas?</div>
+            </div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Ej: Filtra por Amazon..." onkeypress="handleChatKey(event)">
+                <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        var SESSION_DATA = {{ session_data | tojson }};
+    </script>
+
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.6.1/dist/js/tabulator.min.js"></script>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

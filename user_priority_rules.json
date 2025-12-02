@@ -1,0 +1,47 @@
+{
+    "rules": [
+        {
+            "id": "ff1000f1-de62-48ff-8f4a-56e541924e34",
+            "active": false,
+            "priority": "Alta",
+            "reason": "Proveedores importantes asignados",
+            "conditions": [
+                {
+                    "column": "Assignee",
+                    "operator": "equals",
+                    "value": "anggie.galindo@grupobimbo.com"
+                }
+            ]
+        },
+        {
+            "id": "347cd642-01e2-4079-92f7-7799208c073b",
+            "priority": "Alta",
+            "reason": "Alto volumen de facturas",
+            "conditions": [
+                {
+                    "column": "Vendor Name",
+                    "operator": "contains",
+                    "value": "PHD MEDIA LLC"
+                }
+            ],
+            "active": true
+        },
+        {
+            "id": "0066230f-e38d-47e2-b663-45a59b548942",
+            "active": true,
+            "priority": "Alta",
+            "reason": "Proveedores importantes asignados a Angie",
+            "conditions": [
+                {
+                    "column": "Assignee",
+                    "operator": "contains",
+                    "value": null
+                }
+            ]
+        }
+    ],
+    "settings": {
+        "enable_age_sort": true,
+        "enable_scf_intercompany": true
+    }
+}

@@ -1,0 +1,10 @@
+Flask
+Flask-Cors
+Flask-Session
+pandas
+numpy
+openpyxl
+xlsxwriter
+openai
+python-dotenv
+tenacity
