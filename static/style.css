@@ -1,7 +1,7 @@
 /* ==========================================================================
    style.css - Hoja de Estilos Principal
    PROYECTO: Buscador de Facturas Dinámico
-   VERSIÓN: 6.0 (Con Notificaciones y Modales Mejorados)
+   VERSIÓN: 7.5 (Fix de Duplicados y Limpieza Estructural)
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -285,12 +285,15 @@ button, .btn-small-link {
 #modal-overlay[style*="display: flex"] { display: flex !important; }
 
 /* Estilo Base para Modales Grandes */
+/* [CORRECCIÓN CRÍTICA] Se fuerza 'display: none' para evitar fantasmas visuales */
 #bulk-edit-modal, #manage-lists-modal, #priority-rules-modal, #find-replace-modal, #anomalies-modal, #custom-confirm-modal {
     background-color: var(--bg-surface); 
     border: 1px solid var(--border); 
     box-shadow: var(--shadow-lg); 
     border-radius: var(--radius-lg); 
-    display: flex; 
+    
+    display: none; /* Antes era 'flex', cambiado a 'none' por seguridad */
+    
     flex-direction: column;
     
     /* Fix Dimensiones y Responsive */
@@ -724,86 +727,8 @@ body.fullscreen-mode .table-container-flotante { height: 85vh !important; }
 }
 #btn-send-chat:hover { transform: scale(1.1); color: var(--primary-hover); }
 #btn-send-chat:disabled { color: #cbd5e1; cursor: default; transform: none; }
-/* Comenta o borra la clase minimized temporalmente */
-/* #chat-widget.minimized { height: 50px; } */
 
-#chat-widget.minimized { height: 50px; }
-
-#chat-header {
-    background: var(--primary); 
-    color: white; 
-    padding: 15px; 
-    cursor: pointer;
-    font-weight: 600; 
-    display: flex; 
-    justify-content: space-between;
-    align-items: center;
-}
-
-#chat-body { height: 400px; display: flex; flex-direction: column; background-color: #f9fafb; }
-
-#chat-messages { 
-    flex: 1; 
-    padding: 15px; 
-    overflow-y: auto; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 10px; 
-}
-
-.chat-msg { 
-    padding: 10px 14px; 
-    border-radius: 12px; 
-    font-size: 0.9rem; 
-    max-width: 85%; 
-    line-height: 1.4;
-    word-wrap: break-word;
-}
-
-.chat-msg.user { 
-    background: var(--primary-light); 
-    color: var(--primary-hover); 
-    align-self: flex-end; 
-    border-bottom-right-radius: 2px;
-}
-
-.chat-msg.bot { 
-    background: white; 
-    border: 1px solid #e5e7eb; 
-    color: var(--text-main); 
-    align-self: flex-start; 
-    border-bottom-left-radius: 2px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-#chat-input-area { 
-    display: flex; 
-    border-top: 1px solid #e5e7eb; 
-    padding: 10px; 
-    background: white; 
-}
-
-#chat-input-area input { 
-    flex: 1; 
-    border: 1px solid #d1d5db; 
-    border-radius: 20px; 
-    padding: 8px 15px; 
-    font-size: 0.9rem; 
-    outline: none; 
-}
-
-#chat-input-area input:focus { border-color: var(--primary); }
-
-#chat-input-area button { 
-    background: none; 
-    border: none; 
-    color: var(--primary); 
-    cursor: pointer; 
-    margin-left: 8px; 
-    font-size: 1.1rem; 
-}
-#chat-input-area button:hover { color: var(--primary-hover); transform: scale(1.1); }
-
-@keyframes slideOut {
-    to { transform: translateX(110%); opacity: 0; }
-}
+/* * [LIMPIEZA REALIZADA]
+ * Se eliminó todo el código duplicado y malformado que existía aquí abajo 
+ * (bloques de @keyframes slideOut y definiciones repetidas de #chat-widget).
+ */

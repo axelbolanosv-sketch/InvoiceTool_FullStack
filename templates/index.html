@@ -318,19 +318,6 @@
                 <button id="btn-manage-save" class="btn-verde-secundario">Guardar Cambios</button>
             </div>
         </div>
-            
-            <div class="modal-form-group">
-                <label for="manage-list-input">Añadir Manualmente</label>
-                <span class="input-help-text">Escriba valores nuevos separados por comas.</span>
-                <textarea id="manage-list-input" rows="2" placeholder="Ej: Nuevo Valor 1, Nuevo Valor 2"></textarea>
-            </div>
-            
-            <div class="modal-buttons">
-                <button id="btn-manage-cancel" class="btn-rojo-secundario">Cerrar</button>
-                <button id="btn-manage-save" class="btn-verde-secundario">Guardar Cambios</button>
-            </div>
-        </div>
-
         <div id="priority-rules-modal" style="
             display: none; 
             position: fixed; 
@@ -418,35 +405,6 @@
                 </div>
             </div>
         </div>
-
-                <div id="conditions-container" style="margin-bottom: 10px;"></div>
-                
-                <button id="btn-add-condition-row" class="btn-small-link" style="width: 100%; margin-bottom: 10px; border-style: dashed;">
-                    <i class="fas fa-plus"></i> Añadir Otra Condición (AND)
-                </button>
-
-                <div class="modal-grid-2" style="padding: 0; margin: 0;">
-                    <div>
-                        <label style="font-size: 0.8rem;">Entonces aplicar Prioridad:</label>
-                        <select id="rule-priority" style="width: 100%;">
-                            <option value="Alta">Alta</option>
-                            <option value="Media" selected>Media</option>
-                            <option value="Baja">Baja</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="font-size: 0.8rem;">Razón (Etiqueta):</label>
-                        <input type="text" id="rule-reason" placeholder="Ej: Monto Alto" style="width: 100%;">
-                    </div>
-                </div>
-                
-                <input type="hidden" id="rule-id-editing" value="">
-                <button id="btn-save-rule" class="btn-verde-secundario" style="width: 100%; margin-top: 1rem;">Guardar Regla</button>
-            </div>
-
-            <div id="rules-list-container"></div>
-        </div>
-
         <div id="anomalies-modal" style="
             display: none; 
             position: fixed; 
@@ -581,20 +539,6 @@
                 </div>
             </div>
         </div>
-
-            <div id="duplicates-table-container" style="flex-grow: 1; width: 100%; overflow: hidden; background: white;"></div>
-            
-            <div class="modal-buttons" style="justify-content: space-between;">
-                <span id="duplicates-count-msg" style="color: #666; font-size: 0.9rem; align-self: center;"></span>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="closeModal('duplicates-modal')" class="btn-small-link">Cerrar sin cambios</button>
-                    <button id="btn-modal-cleanup" class="btn-rojo-secundario">
-                        <i class="fas fa-trash-alt"></i> Limpiar Duplicados (Mantener 1ro)
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <div id="custom-confirm-modal" style="display: none; width: 400px; max-width: 90vw;">
             <h3 id="confirm-title" style="background-color: #F9FAFB; padding: 1rem; border-bottom: 1px solid var(--border); margin: 0;">Confirmación</h3>
             
