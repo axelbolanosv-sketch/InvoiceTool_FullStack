@@ -12,6 +12,19 @@
                     "value": "anggie.galindo@grupobimbo.com"
                 }
             ]
+        },
+        {
+            "id": "f28c4008-6a2b-41e0-830c-06155cbb93bb",
+            "priority": "Alta",
+            "reason": "Pq si",
+            "conditions": [
+                {
+                    "column": "Vendor Name",
+                    "operator": "equals",
+                    "value": "BARCEL USA, LLC"
+                }
+            ],
+            "active": true
         }
     ],
     "settings": {

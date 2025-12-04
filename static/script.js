@@ -1,7 +1,12 @@
 /**
  * ============================================================================
- * SCRIPT.JS - CONTROLADOR PRINCIPAL DEL CLIENTE
+ * SCRIPT.JS - CONTROLADOR PRINCIPAL DEL CLIENTE (Versión 10.0 - Autocomplete Filtros)
  * ============================================================================
+ * Incluye:
+ * - Lógica de Tabulator
+ * - Gestión de Archivos
+ * - Filtros con Autocompletado Dinámico (FIX)
+ * - Chatbot, Reglas y Modales
  */
 
 // ============================================================================
@@ -430,6 +435,29 @@ function renderGroupedTable(data, colAgrupada, forceClear = false) {
 // ============================================================================
 // 5. FILTROS, VISTAS Y BÚSQUEDA
 // ============================================================================
+
+// --- FUNCIÓN NUEVA PARA AUTOCOMPLETAR EN FILTROS ---
+function updateFilterAutocomplete() {
+    const colSelect = document.getElementById('select-columna');
+    const dataList = document.getElementById('input-valor-list');
+    const inputVal = document.getElementById('input-valor');
+    
+    if (!colSelect || !dataList) return;
+    
+    const col = colSelect.value;
+    dataList.innerHTML = ''; // Limpiar opciones anteriores
+    
+    // Opcional: Limpiar el input al cambiar de columna
+    if(inputVal) inputVal.value = ''; 
+
+    if (col && autocompleteOptions[col]) {
+        autocompleteOptions[col].forEach(val => {
+            const option = document.createElement('option');
+            option.value = val;
+            dataList.appendChild(option);
+        });
+    }
+}
 
 async function handleAddFilter() {
     const col = document.getElementById('select-columna').value;
@@ -1604,9 +1632,13 @@ function setupEventListeners() {
     const btnEn = document.getElementById('btn-lang-en');
     if (btnEn) btnEn.addEventListener('click', () => setLanguage('en'));
 
-    // 3. Filtros
+    // 3. Filtros (FIX: Autocompletado dinámico)
     const btnAddFilter = document.getElementById('btn-add-filter');
     if (btnAddFilter) btnAddFilter.addEventListener('click', handleAddFilter);
+    
+    // LISTENER NUEVO: Actualizar opciones al cambiar columna
+    const selectFilterCol = document.getElementById('select-columna');
+    if (selectFilterCol) selectFilterCol.addEventListener('change', updateFilterAutocomplete);
     
     const btnCheckAll = document.getElementById('btn-check-all-cols');
     if (btnCheckAll) btnCheckAll.addEventListener('click', () => {
