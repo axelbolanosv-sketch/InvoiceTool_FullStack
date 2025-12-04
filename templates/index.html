@@ -89,7 +89,20 @@
         <button id="btn-cleanup-duplicates" class="btn-rojo-secundario" style="width: 100%; margin-top: 0.5rem; display:none;">
             <i class="fas fa-magic"></i> {{ get_text(lang, 'btn_cleanup_duplicates') }}
         </button>
-    </aside>
+
+        <div style="margin-top: 2rem; padding: 1rem; background-color: #F3F4F6; border-radius: 8px; border: 1px solid #E5E7EB; font-size: 0.8rem; color: #4B5563;">
+            <h4 style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #1F2937;"><i class="fas fa-keyboard"></i> Atajos de Teclado</h4>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span>Buscar en tabla:</span> <strong style="background:white; padding:0 4px; border-radius:4px; border:1px solid #ccc;">F</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span>Pantalla completa:</span> <strong style="background:white; padding:0 4px; border-radius:4px; border:1px solid #ccc;">G</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span>Cerrar ventanas:</span> <strong style="background:white; padding:0 4px; border-radius:4px; border:1px solid #ccc;">Esc</strong>
+            </div>
+        </div>
+        </aside>
 
 
     <main class="content">
@@ -158,13 +171,14 @@
                     <input type="text" id="input-search-table" placeholder="Buscar... (F)">
                     <i class="fas fa-search search-icon"></i>
                 </div>
-            </div>
 
-            <div style="position: relative; flex-grow: 1; min-height: 0;">
-                <div style="position: absolute; top: -45px; right: 0; display: flex; gap: 5px;">
+                <div style="display: flex; gap: 5px; margin-left: 10px; border-left: 1px solid #E5E7EB; padding-left: 10px;">
                     <button id="btn-fullscreen" class="icon-button" title="Pantalla Completa (G)"><i class="fas fa-expand"></i></button>
                     <button id="btn-download-excel" class="icon-button" title="Descargar Excel"><i class="fas fa-download"></i></button>
                 </div>
+            </div>
+
+            <div style="position: relative; flex-grow: 1; min-height: 0;">
                 <div id="results-table" class="table-container-flotante"></div>
             </div>
         </div>
@@ -173,13 +187,14 @@
             <div class="table-controls">
                 <div id="active-filters-list-grouped" style="flex-grow: 1; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
                 <button id="btn-clear-filters-grouped" class="btn-rojo-secundario" style="display: none;">Limpiar Filtros</button>
-            </div>
-            
-            <div style="position: relative; flex-grow: 1; min-height: 0;">
-                <div style="position: absolute; top: -45px; right: 0; display: flex; gap: 5px;">
+                
+                <div style="display: flex; gap: 5px; margin-left: 10px; border-left: 1px solid #E5E7EB; padding-left: 10px;">
                     <button id="btn-fullscreen-grouped" class="icon-button"><i class="fas fa-expand"></i></button>
                     <button id="btn-download-excel-grouped" class="icon-button"><i class="fas fa-download"></i></button>
                 </div>
+            </div>
+            
+            <div style="position: relative; flex-grow: 1; min-height: 0;">
                 <div id="results-table-grouped" class="table-container-flotante"></div>
             </div>
         </div>
