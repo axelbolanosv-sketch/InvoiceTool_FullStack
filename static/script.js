@@ -1,12 +1,13 @@
 /**
  * ============================================================================
- * SCRIPT.JS - CONTROLADOR PRINCIPAL DEL CLIENTE (Versión 10.0 - Autocomplete Filtros)
+ * SCRIPT.JS - CONTROLADOR PRINCIPAL DEL CLIENTE (Versión 12.0 - Fix Global Modales)
  * ============================================================================
  * Incluye:
  * - Lógica de Tabulator
  * - Gestión de Archivos
- * - Filtros con Autocompletado Dinámico (FIX)
- * - Chatbot, Reglas y Modales
+ * - Filtros con Autocompletado Dinámico
+ * - Eliminación individual de filtros
+ * - Chatbot, Reglas y Modales (FIX CIERRE)
  */
 
 // ============================================================================
@@ -30,7 +31,7 @@ const COLUMNAS_AGRUPABLES = [
 
 let tabulatorInstance = null;
 let groupedTabulatorInstance = null;
-let duplicatesTabulator = null; // Instancia separada para el modal de duplicados
+let duplicatesTabulator = null; 
 
 let i18n = {}; 
 let activeFilters = []; 
@@ -129,9 +130,12 @@ function showConfirm(title, message) {
             if (btnNo) btnNo.replaceWith(btnNo.cloneNode(true));
             if (modal) modal.style.display = 'none';
             
-            const otherModals = document.querySelectorAll('#bulk-edit-modal, #manage-lists-modal, #priority-rules-modal, #find-replace-modal, #anomalies-modal, #duplicates-modal');
+            // Revisa si hay otros modales abiertos para mantener el overlay
+            const otherModals = document.querySelectorAll('[id$="-modal"]');
             let anyVisible = false;
-            otherModals.forEach(m => { if(m.style.display === 'flex' || m.style.display === 'block') anyVisible = true; });
+            otherModals.forEach(m => { 
+                if((m.style.display === 'flex' || m.style.display === 'block') && m.id !== 'custom-confirm-modal') anyVisible = true; 
+            });
             
             if (!anyVisible && overlay) overlay.style.display = 'none';
         };
@@ -146,17 +150,25 @@ function showConfirm(title, message) {
 
 // --- Utilidades de Modales ---
 function closeModal(id) {
-    document.getElementById('modal-overlay').style.display = 'none';
+    // Cerramos el overlay principal
+    const overlay = document.getElementById('modal-overlay');
+    if(overlay) overlay.style.display = 'none';
+    
+    // Cerramos el modal específico
     const el = document.getElementById(id);
     if(el) el.style.display = 'none';
 }
 
 function openModal(id, initFunc = null) {
-    ['bulk-edit-modal', 'manage-lists-modal', 'priority-rules-modal', 'find-replace-modal', 'anomalies-modal', 'custom-confirm-modal', 'duplicates-modal'].forEach(m => {
-        const el = document.getElementById(m);
-        if(el) el.style.display = 'none';
+    // Cerrar otros modales preventivamente
+    const allModals = document.querySelectorAll('[id$="-modal"]');
+    allModals.forEach(m => {
+        if(m.id !== id) m.style.display = 'none';
     });
-    document.getElementById('modal-overlay').style.display = 'flex';
+
+    const overlay = document.getElementById('modal-overlay');
+    if(overlay) overlay.style.display = 'flex';
+    
     const target = document.getElementById(id);
     if(target) {
         target.style.display = 'flex';
@@ -436,7 +448,6 @@ function renderGroupedTable(data, colAgrupada, forceClear = false) {
 // 5. FILTROS, VISTAS Y BÚSQUEDA
 // ============================================================================
 
-// --- FUNCIÓN NUEVA PARA AUTOCOMPLETAR EN FILTROS ---
 function updateFilterAutocomplete() {
     const colSelect = document.getElementById('select-columna');
     const dataList = document.getElementById('input-valor-list');
@@ -445,9 +456,7 @@ function updateFilterAutocomplete() {
     if (!colSelect || !dataList) return;
     
     const col = colSelect.value;
-    dataList.innerHTML = ''; // Limpiar opciones anteriores
-    
-    // Opcional: Limpiar el input al cambiar de columna
+    dataList.innerHTML = ''; 
     if(inputVal) inputVal.value = ''; 
 
     if (col && autocompleteOptions[col]) {
@@ -477,9 +486,13 @@ async function handleClearFilters() {
     await refreshActiveView(); 
 }
 
+// FIX: Manejador de eventos actualizado para eliminación individual
 async function handleRemoveFilter(event) {
-    if (!event.target.classList.contains('remove-filter-btn')) return;
-    activeFilters.splice(parseInt(event.target.dataset.index, 10), 1);
+    const btn = event.target.closest('.remove-filter-btn');
+    if (!btn) return;
+    
+    const index = parseInt(btn.dataset.index, 10);
+    activeFilters.splice(index, 1);
     await refreshActiveView(); 
 }
 
@@ -509,7 +522,7 @@ function renderFilters() {
         filtersListDiv.innerHTML += `
             <div class="filtro-chip">
                 <span>${colName}: <strong>${filtro.valor}</strong></span>
-                <button class="remove-filter-btn" data-index="${index}">&times;</button>
+                <button class="remove-filter-btn" data-index="${index}" style="margin-left:8px; border:none; background:transparent; cursor:pointer; font-size:1.1rem; color:#666; display:flex; align-items:center;">&times;</button>
             </div>`;
     });
 }
@@ -923,35 +936,66 @@ async function handleShowDuplicates() {
                 const countMsg = document.getElementById('duplicates-count-msg');
                 if(countMsg) countMsg.innerText = `Se encontraron ${res.num_filas} registros conflictivos.`;
 
+                // 1. Configurar Botón de Limpieza Automática
                 const btnClean = document.getElementById('btn-modal-cleanup');
                 if(btnClean) {
-                    const newBtn = btnClean.cloneNode(true);
-                    btnClean.parentNode.replaceChild(newBtn, btnClean);
-                    newBtn.addEventListener('click', () => {
+                    btnClean.onclick = () => {
                         handleCleanupDuplicates(); 
                         closeModal('duplicates-modal'); 
-                    });
+                    };
                 }
 
+                // 2. Configurar Botón "Ver en Tabla Principal"
+                const btnFilterMain = document.getElementById('btn-filter-duplicates-main');
+                if(btnFilterMain) {
+                    console.log("[DEBUG] Botón filtro duplicados encontrado.");
+                    btnFilterMain.onclick = () => {
+                        console.log("[DEBUG] Click en Ver en Tabla Principal");
+                        closeModal('duplicates-modal');
+                        
+                        currentData = res.data; 
+                        tableData = [...currentData];
+                        
+                        activeFilters = [{columna: 'MODO', valor: 'Revisión de Duplicados'}];
+                        renderFilters();
+                        renderTable(currentData);
+                        
+                        let totalDupes = 0;
+                        try {
+                            totalDupes = currentData.reduce((acc, row) => {
+                                const val = parseFloat(String(row['Total'] || row['Monto'] || row['Amount'] || 0).replace(/[$,]/g, '')) || 0;
+                                return acc + val;
+                            }, 0);
+                        } catch(e) {}
+
+                        updateResumenCard({ 
+                            total_facturas: res.num_filas, 
+                            monto_total: `$${totalDupes.toLocaleString('en-US', {minimumFractionDigits: 2})}`, 
+                            monto_promedio: "Revisión" 
+                        });
+                        
+                        showToast("Mostrando duplicados. Usa las casillas para seleccionar y borrar.", "info");
+                    };
+                }
+
+                // Renderizar tabla pequeña dentro del modal
                 if (duplicatesTabulator) duplicatesTabulator.destroy();
-                
                 duplicatesTabulator = new Tabulator("#duplicates-table-container", {
                     data: res.data,
                     layout: "fitColumns",
                     height: "100%",
                     columns: [
-                        {title: "Fila", field: "_row_id", width: 70, formatter: c => c.getValue() + 1},
-                        {title: "Invoice #", field: "Invoice #", headerFilter: "input", width: 150},
-                        {title: "Vendor Name", field: "Vendor Name", width: 200},
-                        {title: "Monto", field: "Total", width: 120, hozAlign: "right"},
-                        {title: "Fecha", field: "Invoice Date", width: 120},
-                        {title: "Status", field: "Status", width: 120}
+                        {title: "Fila", field: "_row_id", width: 60, formatter: c => c.getValue() + 1},
+                        {title: "Invoice #", field: "Invoice #", width: 140},
+                        {title: "Vendor Name", field: "Vendor Name", width: 180},
+                        {title: "Total", field: "Total", width: 100, hozAlign: "right"},
+                        {title: "Fecha", field: "Invoice Date", width: 110}
                     ]
                 });
             });
-            showToast(`Se encontraron ${res.num_filas} duplicados.`, "warning");
+            showToast(`Atención: ${res.num_filas} posibles duplicados.`, "warning");
         } else {
-            showToast("¡Excelente! No se encontraron facturas duplicadas.", "success");
+            showToast("¡Limpio! No se encontraron duplicados.", "success");
         }
     } catch (e) { 
         btn.innerHTML = originalText;
@@ -1416,49 +1460,32 @@ async function handleSaveSettings() {
 
 
 // ============================================================================
-// 10. LÓGICA DEL CHATBOT IA (ACTUALIZADO)
+// 10. LÓGICA DEL CHATBOT IA
 // ============================================================================
 
-let chatOpen = false; // Empezamos CERRADO por defecto (más limpio)
+let chatOpen = false; 
 
 function toggleChat() {
     const windowEl = document.getElementById('chat-window');
     const launcherEl = document.getElementById('chat-launcher');
-    const icon = launcherEl.querySelector('i');
     
     chatOpen = !chatOpen;
     
     if (chatOpen) {
         windowEl.classList.add('visible');
         launcherEl.classList.add('active');
-        // Opcional: Cambiar icono a 'X' al abrir
-        // icon.classList.remove('fa-robot');
-        // icon.classList.add('fa-times');
-        
-        // Auto-focus al abrir
         setTimeout(() => document.getElementById('chat-input').focus(), 300);
     } else {
         windowEl.classList.remove('visible');
         launcherEl.classList.remove('active');
-        // Restaurar icono
-        // icon.classList.add('fa-robot');
-        // icon.classList.remove('fa-times');
     }
 }
-
-// Inicialización específica del chat (Reemplaza el bloque chat del DOMContentLoaded anterior)
-// Nota: No necesitas borrar todo el DOMContentLoaded, solo asegúrate de que esto esté o reemplaza la verificación anterior.
-/* En tu setupEventListeners() existente, verifica que no haya referencias viejas a 'chat-header' para el toggle.
-   El nuevo HTML usa onclick="toggleChat()" directamente en el botón, así que es más simple.
-*/
 
 document.addEventListener('DOMContentLoaded', () => {
     const w = document.getElementById('chat-widget');
     if(w) { 
         chatOpen = true; 
         console.log("✅ Chatbot inicializado correctamente"); 
-    } else {
-        console.error("❌ ERROR: No encuentro el div del chatbot en el HTML");
     }
 });
 
@@ -1622,6 +1649,21 @@ function handleChatKey(e) { if(e.key === 'Enter') sendMessage(); }
 // ============================================================================
 
 function setupEventListeners() {
+    // ------------------------------------------------------------------------
+    // NUEVO: MANEJADOR GLOBAL DE CIERRE DE MODALES (Para botones 'X' en esquinas)
+    // ------------------------------------------------------------------------
+    document.addEventListener('click', (e) => {
+        // Detectar si el click fue en un elemento con clase .btn-close-x o dentro de él
+        const closeBtn = e.target.closest('.btn-close-x');
+        if (closeBtn) {
+            // Buscar el div modal padre más cercano cuyo ID contenga 'modal'
+            const modal = closeBtn.closest('div[id*="modal"]'); 
+            if (modal) {
+                closeModal(modal.id);
+            }
+        }
+    });
+
     // 1. Carga de Archivos
     const uploader = document.getElementById('file-uploader');
     if (uploader) uploader.addEventListener('change', handleFileUpload);
@@ -1632,14 +1674,19 @@ function setupEventListeners() {
     const btnEn = document.getElementById('btn-lang-en');
     if (btnEn) btnEn.addEventListener('click', () => setLanguage('en'));
 
-    // 3. Filtros (FIX: Autocompletado dinámico)
+    // 3. Filtros
     const btnAddFilter = document.getElementById('btn-add-filter');
     if (btnAddFilter) btnAddFilter.addEventListener('click', handleAddFilter);
     
-    // LISTENER NUEVO: Actualizar opciones al cambiar columna
     const selectFilterCol = document.getElementById('select-columna');
     if (selectFilterCol) selectFilterCol.addEventListener('change', updateFilterAutocomplete);
     
+    const filtersList = document.getElementById('active-filters-list');
+    if (filtersList) filtersList.addEventListener('click', handleRemoveFilter);
+    
+    const filtersListGrouped = document.getElementById('active-filters-list-grouped');
+    if (filtersListGrouped) filtersListGrouped.addEventListener('click', handleRemoveFilter);
+
     const btnCheckAll = document.getElementById('btn-check-all-cols');
     if (btnCheckAll) btnCheckAll.addEventListener('click', () => {
         document.querySelectorAll('#column-selector-wrapper input[type="checkbox"]').forEach(cb => cb.checked = true);
@@ -1751,8 +1798,10 @@ function setupEventListeners() {
     if (btnRuleSave) btnRuleSave.addEventListener('click', handleSaveRule);
     const btnRuleSettings = document.getElementById('btn-save-settings');
     if (btnRuleSettings) btnRuleSettings.addEventListener('click', handleSaveSettings);
-    const btnRuleClose = document.getElementById('btn-rules-close');
-    if (btnRuleClose) btnRuleClose.addEventListener('click', () => closeModal('priority-rules-modal'));
+    
+    // NOTA: Eliminamos la asignación específica de btn-rules-close aquí porque 
+    // el manejador global al principio de esta función ya lo cubre.
+    
     const btnRuleClear = document.getElementById('btn-clear-rule-form');
     if (btnRuleClear) btnRuleClear.addEventListener('click', resetRuleForm);
     
@@ -1771,13 +1820,8 @@ function setupEventListeners() {
             handleFullscreen();
         }
         if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
-            closeModal('bulk-edit-modal');
-            closeModal('find-replace-modal');
-            closeModal('manage-lists-modal');
-            closeModal('priority-rules-modal');
-            closeModal('anomalies-modal');
-            closeModal('duplicates-modal');
+            document.querySelectorAll('div[id$="-modal"]').forEach(el => el.style.display = 'none');
+            document.getElementById('modal-overlay').style.display = 'none';
             
             if (document.body.classList.contains('fullscreen-mode')) handleFullscreen();
         }

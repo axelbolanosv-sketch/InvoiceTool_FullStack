@@ -1,22 +1,28 @@
 """
 ================================================================================
-APP.PY - CONTROLADOR PRINCIPAL (FLASK)
+APP.PY - CONTROLADOR PRINCIPAL (FLASK) - VERSIÓN OPTIMIZADA (CACHE & SEGURIDAD)
 ================================================================================
 Descripción:
     Punto de entrada de la aplicación. Coordina el Frontend (Tabulator/JS)
     con los módulos de lógica de negocio (Pandas, IA, Reglas).
+    
+    Incluye:
+    - Gestión automática de limpieza de caché (Garbage Collector).
+    - Límites de subida de archivos.
+    - Timeouts de sesión.
 
 Estructura:
     1. Configuración e Importaciones
-    2. Funciones Auxiliares (Helpers)
-    3. Rutas: Vistas y Sistema
-    4. Rutas: Gestión de Archivos
-    5. Rutas: Manipulación de Datos (Filtros, Agrupación)
-    6. Rutas: Edición de Filas (CRUD)
-    7. Rutas: Operaciones Masivas
-    8. Rutas: Reglas de Negocio y Listas
-    9. Rutas: IA y Agentes
-    10. Rutas: Historial y Auditoría
+    2. Sistema de Limpieza (NUEVO)
+    3. Funciones Auxiliares (Helpers)
+    4. Rutas: Vistas y Sistema
+    5. Rutas: Gestión de Archivos
+    6. Rutas: Manipulación de Datos
+    7. Rutas: Edición de Filas
+    8. Rutas: Operaciones Masivas
+    9. Rutas: Reglas de Negocio
+    10. Rutas: IA y Agentes
+    11. Rutas: Historial y Auditoría
 ================================================================================
 """
 
@@ -27,7 +33,9 @@ import os
 import io
 import uuid
 import json
-from datetime import datetime
+import time   # Nuevo: Para control de tiempo en limpieza
+import shutil # Nuevo: Para borrar carpetas temporales
+from datetime import datetime, timedelta # Nuevo: timedelta para sesión
 
 import pandas as pd
 import numpy as np
@@ -56,11 +64,13 @@ UPLOAD_FOLDER = 'temp_uploads'
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
-# Configuración de Sesión
+# --- Configuración de Sesión y Seguridad ---
 app.config['SECRET_KEY'] = 'mi-llave-secreta-para-el-buscador-12345'
-app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_FILE_DIR"] = os.path.join(UPLOAD_FOLDER, 'flask_session')
+app.config["SESSION_PERMANENT"] = True # Cambiado a True para que aplique el lifetime
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=60) # La sesión expira en 60 min de inactividad
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Límite de subida: 16MB (Protección contra desbordamiento)
 
 # Asegurar existencia de carpetas
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -70,7 +80,54 @@ Session(app)
 
 
 # ------------------------------------------------------------------------------
-# 2. FUNCIONES AUXILIARES (HELPERS)
+# 2. SISTEMA DE LIMPIEZA DE CACHÉ (NUEVO)
+# ------------------------------------------------------------------------------
+def clean_stale_sessions():
+    """
+    Elimina archivos de sesión y temporales que tengan más de 24 horas de antigüedad.
+    Se ejecuta al iniciar la aplicación para prevenir saturación de disco.
+    """
+    print("🧹 [SISTEMA] Iniciando limpieza de caché y archivos temporales...")
+    folders_to_clean = [
+        app.config['SESSION_FILE_DIR'], 
+        UPLOAD_FOLDER
+    ]
+    
+    now = time.time()
+    retention_period = 86400  # 24 horas en segundos (para ser conservador)
+    deleted_count = 0
+
+    for folder in folders_to_clean:
+        if not os.path.exists(folder):
+            continue
+            
+        for filename in os.listdir(folder):
+            file_path = os.path.join(folder, filename)
+            try:
+                # Si es un archivo xlsx viejo o archivo de sesión
+                if os.path.isfile(file_path):
+                    if os.stat(file_path).st_mtime < (now - retention_period):
+                        os.remove(file_path)
+                        deleted_count += 1
+                # Si es una subcarpeta vieja (y no es la carpeta de sesiones en sí misma)
+                elif os.path.isdir(file_path) and filename != 'flask_session':
+                     if os.stat(file_path).st_mtime < (now - retention_period):
+                        shutil.rmtree(file_path)
+                        deleted_count += 1
+            except Exception as e:
+                print(f"⚠️ Error borrando {file_path}: {e}")
+                
+    if deleted_count > 0:
+        print(f"✅ [SISTEMA] Limpieza completada. Se eliminaron {deleted_count} archivos antiguos.")
+    else:
+        print("✅ [SISTEMA] El sistema está limpio. No hubo archivos viejos para borrar.")
+
+# Ejecutar limpieza inmediatamente al arrancar
+clean_stale_sessions()
+
+
+# ------------------------------------------------------------------------------
+# 3. FUNCIONES AUXILIARES (HELPERS)
 # ------------------------------------------------------------------------------
 
 def _check_file_id(request_file_id: str) -> None:
@@ -88,7 +145,7 @@ def _get_df_from_session_as_df(key: str = 'df_staging') -> pd.DataFrame:
     data = session.get(key)
     if not data:
         session.clear()
-        raise Exception("Datos de sesión no encontrados.")
+        raise Exception("Datos de sesión no encontrados (Posible timeout). Recargue la página.")
     return pd.DataFrame.from_records(data)
 
 def _find_monto_column(df: pd.DataFrame) -> str | None:
@@ -190,7 +247,7 @@ def _generic_download(data, grouped):
 
 
 # ------------------------------------------------------------------------------
-# 3. RUTAS: VISTAS & SISTEMA
+# 4. RUTAS: VISTAS & SISTEMA
 # ------------------------------------------------------------------------------
 
 @app.context_processor
@@ -215,6 +272,15 @@ def home():
 
     return render_template('index.html', session_data=session_data)
 
+@app.route('/api/system/reset_cache', methods=['POST'])
+def reset_system_cache():
+    """Permite forzar la limpieza de sesión desde el frontend si algo falla."""
+    try:
+        session.clear()
+        return jsonify({'message': 'Memoria liberada y sesión reiniciada.', 'status': 'success'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/set_language/<string:lang_code>')
 def set_language(lang_code):
     if lang_code in LANGUAGES: session['language'] = lang_code
@@ -226,7 +292,7 @@ def get_translations():
 
 
 # ------------------------------------------------------------------------------
-# 4. RUTAS: GESTIÓN DE ARCHIVOS
+# 5. RUTAS: GESTIÓN DE ARCHIVOS
 # ------------------------------------------------------------------------------
 
 @app.route('/api/upload', methods=['POST'])
@@ -254,7 +320,9 @@ def upload_file():
         session['audit_log'] = []
         session['file_id'] = file_id
         session['pay_group_col_name'] = pay_group_col
+        session.permanent = True # Marcar sesión como permanente para que use el timeout
         
+        # Ya cargado en RAM, podemos borrar el archivo físico subido
         if os.path.exists(file_path): os.remove(file_path)
 
         return jsonify({
@@ -269,7 +337,7 @@ def upload_file():
 
 
 # ------------------------------------------------------------------------------
-# 5. RUTAS: MANIPULACIÓN DE DATOS (FILTROS Y GRUPOS)
+# 6. RUTAS: MANIPULACIÓN DE DATOS (FILTROS Y GRUPOS)
 # ------------------------------------------------------------------------------
 
 @app.route('/api/filter', methods=['POST'])
@@ -326,7 +394,7 @@ def group_by_data():
 
 
 # ------------------------------------------------------------------------------
-# 6. RUTAS: EDICIÓN DE FILAS (CRUD)
+# 7. RUTAS: EDICIÓN DE FILAS (CRUD)
 # ------------------------------------------------------------------------------
 
 @app.route('/api/update_cell', methods=['POST'])
@@ -451,7 +519,7 @@ def delete_row():
 
 
 # ------------------------------------------------------------------------------
-# 7. RUTAS: OPERACIONES MASIVAS
+# 8. RUTAS: OPERACIONES MASIVAS
 # ------------------------------------------------------------------------------
 
 @app.route('/api/bulk_update', methods=['POST'])
@@ -621,7 +689,7 @@ def delete_column_route():
 
 
 # ------------------------------------------------------------------------------
-# 8. RUTAS: REGLAS DE NEGOCIO Y LISTAS
+# 9. RUTAS: REGLAS DE NEGOCIO Y LISTAS
 # ------------------------------------------------------------------------------
 
 @app.route('/api/priority_rules/get', methods=['GET'])
@@ -724,7 +792,7 @@ def api_import_view_rules():
 
 
 # ------------------------------------------------------------------------------
-# 9. RUTAS: IA & AGENTES
+# 10. RUTAS: IA & AGENTES
 # ------------------------------------------------------------------------------
 
 @app.route('/api/chat_agent', methods=['POST'])
@@ -773,7 +841,7 @@ def analyze_anomalies_route():
 
 
 # ------------------------------------------------------------------------------
-# 10. RUTAS: HISTORIAL Y AUDITORÍA
+# 11. RUTAS: HISTORIAL Y AUDITORÍA
 # ------------------------------------------------------------------------------
 
 @app.route('/api/undo_change', methods=['POST'])
@@ -863,7 +931,7 @@ def download_excel_grouped():
 
 
 # ------------------------------------------------------------------------------
-# 11. PUNTO DE ENTRADA
+# 12. PUNTO DE ENTRADA
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
     # En producción, debug=False
