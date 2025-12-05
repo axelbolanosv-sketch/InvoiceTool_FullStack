@@ -1755,6 +1755,10 @@ function setupEventListeners() {
     const selectGroup = document.getElementById('select-columna-agrupar');
     if (selectGroup) selectGroup.addEventListener('change', handleGroupColumnChange);
 
+    // Botón de Cerrar Sesión / Reset
+    const btnResetSession = document.getElementById('btn-reset-session');
+    if (btnResetSession) btnResetSession.addEventListener('click', handleResetSession);
+
     // 6. Controles de Tabla
     const inputSearch = document.getElementById('input-search-table');
     if (inputSearch) inputSearch.addEventListener('keyup', handleSearchTable);
@@ -1898,7 +1902,43 @@ function setupEventListeners() {
 // ============================================================================
 // 12. INICIALIZACIÓN (DOM READY)
 // ============================================================================
+/**
+ * Cierra la sesión, borra el caché del servidor y recarga la página.
+ */
+async function handleResetSession() {
+    // 1. Confirmación de seguridad
+    if (!await showConfirm("Cerrar Sesión", "Se perderán los datos no guardados y se reiniciará la herramienta. ¿Continuar?")) {
+        return;
+    }
+    
+    // 2. Feedback visual (Loading)
+    const btn = document.getElementById('btn-reset-session');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Limpiando...';
+        btn.disabled = true;
+    }
 
+    try {
+        // 3. Petición al backend
+        const response = await fetch('/api/system/reset_cache', { method: 'POST' });
+        const res = await response.json();
+        
+        if (response.ok) {
+            showToast("Memoria liberada. Reiniciando...", "success");
+            // 4. Recargar página (Reset total)
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            throw new Error(res.error || "Error desconocido");
+        }
+    } catch (e) {
+        showToast("Error al cerrar sesión: " + e.message, "error");
+        if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+}
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Verificar Conexión
     const statusEl = document.getElementById('system-status');
