@@ -1808,24 +1808,63 @@ function setupEventListeners() {
     const btnAddCond = document.getElementById('btn-add-condition-row');
     if (btnAddCond) btnAddCond.addEventListener('click', () => addConditionRow());
 
-    // Teclas rápidas
+    // ------------------------------------------------------------------------
+    // ATAJOS DE TECLADO (HOTKEYS) - Lógica Centralizada
+    // ------------------------------------------------------------------------
     document.addEventListener('keydown', (e) => {
-        if ((e.key === 'f' || e.key === 'F') && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+        const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+
+        // 1. BUSCAR (Tecla F) - Solo si no escribe texto
+        if ((e.key === 'f' || e.key === 'F') && !isInput && !e.ctrlKey && !e.metaKey) {
             e.preventDefault();
             const search = document.getElementById('input-search-table');
-            if (search) search.focus();
+            if (search) {
+                search.focus();
+                search.select(); // Selecciona el texto existente para facilitar nueva búsqueda
+            }
         }
-        if ((e.key === 'g' || e.key === 'G') && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+
+        // 2. PANTALLA COMPLETA (Tecla G) - Solo si no escribe texto
+        if ((e.key === 'g' || e.key === 'G') && !isInput && !e.ctrlKey && !e.metaKey) {
             e.preventDefault();
             handleFullscreen();
         }
+
+        // 3. DESHACER (Ctrl + Z) - Solo si no escribe texto (para respetar el undo nativo de inputs)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !isInput) {
+            e.preventDefault();
+            const btnUndo = document.getElementById('btn-undo-change');
+            // Solo ejecutar si el botón es visible (hay historial)
+            if (btnUndo && btnUndo.style.display !== 'none') {
+                handleUndoChange();
+            } else {
+                showToast("No hay acciones para deshacer.", "info");
+            }
+        }
+
+        // 4. CONSOLIDAR / GUARDAR (Ctrl + S) - Intercepta siempre para evitar "Guardar como..." del navegador
+        if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+            e.preventDefault(); // Bloquea el guardado del navegador
+            const btnCommit = document.getElementById('btn-commit-changes');
+            if (btnCommit && btnCommit.style.display !== 'none') {
+                handleCommitChanges();
+            } else {
+                showToast("No hay cambios pendientes por consolidar.", "info");
+            }
+        }
+
+        // 5. CERRAR MODALES (Escape)
         if (e.key === 'Escape') {
             document.querySelectorAll('div[id$="-modal"]').forEach(el => el.style.display = 'none');
             document.getElementById('modal-overlay').style.display = 'none';
             
+            // Si está en fullscreen, salir también
             if (document.body.classList.contains('fullscreen-mode')) handleFullscreen();
         }
     });
+
+    console.log("✅ Event Listeners y Hotkeys configurados correctamente.");
+}
 
     console.log("✅ Event Listeners configurados correctamente.");
 }
