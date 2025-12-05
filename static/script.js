@@ -1,13 +1,16 @@
 /**
  * ============================================================================
- * SCRIPT.JS - CONTROLADOR PRINCIPAL DEL CLIENTE (Versión 12.0 - Fix Global Modales)
+ * SCRIPT.JS - CONTROLADOR PRINCIPAL DEL CLIENTE (Versión 12.1 - Hotfix Syntax)
  * ============================================================================
- * Incluye:
- * - Lógica de Tabulator
- * - Gestión de Archivos
- * - Filtros con Autocompletado Dinámico
- * - Eliminación individual de filtros
- * - Chatbot, Reglas y Modales (FIX CIERRE)
+ * Descripción:
+ * Controlador principal del frontend. Gestiona la tabla interactiva (Tabulator),
+ * la comunicación con el backend (Flask API), y la lógica de la interfaz de usuario.
+ * * Incluye:
+ * - Lógica de Tabulator (Renderizado, Edición, Filtros).
+ * - Gestión de Archivos (Carga, Descarga).
+ * - Filtros con Autocompletado Dinámico.
+ * - Chatbot IA, Reglas de Negocio y Modales.
+ * - Manejo de Atajos de Teclado (Hotkeys).
  */
 
 // ============================================================================
@@ -46,6 +49,9 @@ let systemSettings = {
 // 2. SERVICIOS UI & UTILIDADES
 // ============================================================================
 
+/**
+ * Carga las traducciones desde el backend.
+ */
 async function loadTranslations() {
     try {
         const response = await fetch('/api/get_translations');
@@ -58,6 +64,10 @@ async function loadTranslations() {
     updateDynamicText();
 }
 
+/**
+ * Cambia el idioma de la sesión.
+ * @param {string} langCode - Código de idioma ('es' o 'en').
+ */
 async function setLanguage(langCode) {
     try { 
         await fetch(`/api/set_language/${langCode}`); 
@@ -65,6 +75,9 @@ async function setLanguage(langCode) {
     } catch (error) { console.error('Error cambio idioma:', error); }
 }
 
+/**
+ * Actualiza textos dinámicos en la interfaz según el idioma cargado.
+ */
 function updateDynamicText() {
     const valInput = document.getElementById('input-valor');
     const searchTableInput = document.getElementById('input-search-table');
@@ -79,6 +92,10 @@ function updateDynamicText() {
     if (resultsTableGrouped && !groupedTabulatorInstance && !currentFileId) resultsTableGrouped.innerHTML = emptyMsg;
 }
 
+/**
+ * Actualiza los contadores de la tarjeta de resumen (KPIs).
+ * @param {Object} resumen_data - Datos con total_facturas, monto_total, etc.
+ */
 function updateResumenCard(resumen_data) {
     if (!resumen_data) return; 
     const setTxt = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
@@ -91,6 +108,11 @@ function resetResumenCard() {
     updateResumenCard({ total_facturas: '0', monto_total: '$0.00', monto_promedio: '$0.00' });
 }
 
+/**
+ * Muestra una notificación flotante (Toast).
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo de alerta ('success', 'error', 'warning', 'info').
+ */
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -112,6 +134,12 @@ function showToast(message, type = 'info') {
     }, 3500);
 }
 
+/**
+ * Muestra un modal de confirmación personalizado.
+ * @param {string} title - Título del modal.
+ * @param {string} message - Mensaje de confirmación.
+ * @returns {Promise<boolean>} - True si el usuario acepta, False si cancela.
+ */
 function showConfirm(title, message) {
     return new Promise((resolve) => {
         document.getElementById('confirm-title').innerText = title;
@@ -1864,9 +1892,6 @@ function setupEventListeners() {
     });
 
     console.log("✅ Event Listeners y Hotkeys configurados correctamente.");
-}
-
-    console.log("✅ Event Listeners configurados correctamente.");
 }
 
 
