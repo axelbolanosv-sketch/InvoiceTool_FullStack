@@ -1,7 +1,7 @@
 /* ==========================================================================
    style.css - Hoja de Estilos Principal
    PROYECTO: Buscador de Facturas Dinámico
-   VERSIÓN: 9.0 (Diseño Compacto + Fix Colores Prioridad)
+   VERSIÓN: 9.1 (Fix Z-Index & Click Areas)
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -201,10 +201,13 @@ button, .btn-small-link {
 .card-titulo { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
 .card-valor { font-size: 1.3rem; font-weight: 700; color: var(--text-main); }
 
-/* -- Controles de Tabla y Filtros -- */
+/* -- Controles de Tabla y Filtros (FIXED Z-INDEX) -- */
 .table-controls {
     background-color: var(--bg-body); padding: 0.5rem; border-radius: var(--radius-md);
     display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.8rem; border: 1px solid var(--border); flex-shrink: 0;
+    /* FIX CRÍTICO: Asegurar que los controles estén sobre la tabla */
+    position: relative;
+    z-index: 10;
 }
 .filtro-chip { 
     background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; 
@@ -312,6 +315,8 @@ button, .btn-small-link {
     max-width: 95vw; 
     max-height: 85vh; 
     overflow-y: auto; 
+    position: relative; /* Asegurar contexto */
+    z-index: 10001; /* Encima del overlay */
 }
 
 #rules-list-container {
@@ -323,7 +328,7 @@ button, .btn-small-link {
 #bulk-edit-modal h3, #manage-lists-modal h3, #priority-rules-modal h3, #find-replace-modal h3, #anomalies-modal h3, #custom-confirm-modal h3, #duplicates-modal h3, .modal-header-sticky h3 {
     background-color: #F9FAFB; padding: 0.8rem 1.2rem; margin: 0; 
     border-bottom: 1px solid var(--border); font-size: 1rem; color: var(--text-main);
-    position: sticky; top: 0; z-index: 10;
+    position: sticky; top: 0; z-index: 20;
 }
 
 .modal-header-sticky {
@@ -342,7 +347,7 @@ button, .btn-small-link {
 .modal-buttons { 
     padding: 0.8rem 1.2rem; background-color: #F9FAFB; border-top: 1px solid var(--border); 
     margin: 0; margin-top: auto; display: flex; justify-content: flex-end; gap: 0.8rem; 
-    position: sticky; bottom: 0; z-index: 10;
+    position: sticky; bottom: 0; z-index: 20; /* FIX: Subir Z-Index para que no lo tapen elementos del cuerpo */
 }
 
 .modal-form-group { margin-bottom: 0.8rem; padding: 0 1.2rem; }
@@ -407,11 +412,17 @@ body.fullscreen-mode .table-container-flotante { height: 90vh !important; }
 #anomalies-table-container { flex-grow: 1; height: 100%; width: 100%; margin-bottom: 0; overflow: auto; }
 
 /* --- TOASTS --- */
-.toast-container { position: fixed; top: 20px; right: 20px; z-index: 11000; display: flex; flex-direction: column; gap: 10px; }
+/* FIX: pointer-events: none en el contenedor permite clicks a través de él si no hay toasts */
+.toast-container { 
+    position: fixed; top: 20px; right: 20px; z-index: 11000; 
+    display: flex; flex-direction: column; gap: 10px; 
+    pointer-events: none; /* CLAVE PARA SOLUCIONAR BLOQUEO */
+}
 .toast {
     background-color: var(--bg-surface); border-left: 5px solid var(--primary); color: var(--text-main);
     padding: 0.8rem 1.2rem; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); min-width: 280px;
     display: flex; align-items: center; justify-content: space-between; animation: slideIn 0.3s ease forwards; opacity: 0;
+    pointer-events: auto; /* Reactivar clicks en el toast individual */
 }
 .toast.success { border-left-color: var(--success); }
 .toast.error { border-left-color: var(--danger); }
